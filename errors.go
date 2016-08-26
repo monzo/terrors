@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mondough/terrors/stack"
+	"github.com/monzo/terrors/stack"
 )
 
 type Error struct {

@@ -5,7 +5,7 @@ import "testing"
 
 func TestBuildStack(t *testing.T) {
 	frame := BuildStack(1)[0]
-	if frame.Filename != "github.com/mondough/terrors/stack/stack_test.go" {
+	if frame.Filename != "github.com/monzo/terrors/stack/stack_test.go" {
 		t.Errorf("got: %s", frame.Filename)
 	}
 	if frame.Method != "stack.TestBuildStack" {

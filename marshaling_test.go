@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	pe "github.com/mondough/terrors/proto"
-	"github.com/mondough/terrors/stack"
+	pe "github.com/monzo/terrors/proto"
+	"github.com/monzo/terrors/stack"
 )
 
 func TestMarshalNilError(t *testing.T) {

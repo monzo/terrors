@@ -1,8 +1,8 @@
 package terrors
 
 import (
-	pe "github.com/mondough/terrors/proto"
-	"github.com/mondough/terrors/stack"
+	pe "github.com/monzo/terrors/proto"
+	"github.com/monzo/terrors/stack"
 )
 
 // Marshal an error into a protobuf for transmission
