@@ -1,14 +1,13 @@
 language: go
 
 go:
-  - 1.4.1
-  - 1.4.2
+  - 1.6.3
+  - 1.7
 
 install:
   - export PATH=${PATH}:${HOME}/gopath/bin
   - go get -v -t ./...
   - go get -v github.com/golang/lint/golint
-  - go get -v golang.org/x/tools/cmd/vet
 
 before_script:
   - go vet ./...
