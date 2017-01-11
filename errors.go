@@ -17,14 +17,15 @@ type Error struct {
 // Generic error codes. Each of these has their own constructor for convenience.
 // You can use any string as a code, just use the `New` method.
 const (
-	ErrUnknown         = "unknown"
-	ErrInternalService = "internal_service"
-	ErrBadRequest      = "bad_request"
-	ErrBadResponse     = "bad_response"
-	ErrForbidden       = "forbidden"
-	ErrUnauthorized    = "unauthorized"
-	ErrNotFound        = "not_found"
-	ErrTimeout         = "timeout"
+	ErrBadRequest         = "bad_request"
+	ErrBadResponse        = "bad_response"
+	ErrForbidden          = "forbidden"
+	ErrInternalService    = "internal_service"
+	ErrNotFound           = "not_found"
+	ErrPreconditionFailed = "precondition_failed"
+	ErrTimeout            = "timeout"
+	ErrUnauthorized       = "unauthorized"
+	ErrUnknown            = "unknown"
 )
 
 // Error returns a string message of the error. It is a concatenation of Code and Message params
@@ -126,6 +127,12 @@ func Forbidden(code, message string, params map[string]string) *Error {
 // but has either failed or not been provided.
 func Unauthorized(code, message string, params map[string]string) *Error {
 	return errorFactory(errCode(ErrUnauthorized, code), message, params)
+}
+
+// PreconditionFailed creates a new error indicating that one or more conditions
+// given in the request evaluated to false when tested on the server.
+func PreconditionFailed(code, message string, params map[string]string) *Error {
+	return errorFactory(errCode(ErrPreconditionFailed, code), message, params)
 }
 
 // errorConstructor returns a `*Error` with the specified code, message and params.
