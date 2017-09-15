@@ -177,3 +177,31 @@ func errCode(prefix, code string) string {
 func (p *Error) Matches(match string) bool {
 	return strings.Contains(p.Error(), match)
 }
+
+// PrefixMatches returns whether the string returned from error.Error() starts with the given param string. This means
+// you can match the error on different levels e.g. dotted codes `bad_request` or `bad_request.missing_param`.
+func (p *Error) PrefixMatches(prefix string) bool {
+	return strings.HasPrefix(p.Code, prefix)
+}
+
+// Matches returns true if the error is a terror error and the string returned from error.Error() contains the given
+// param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
+// `bad_request.missing_param` or even on the more descriptive message
+func Matches(err error, match string) bool {
+	if terr, ok := Wrap(err, nil).(*Error); ok {
+		return terr.Matches(match)
+	}
+
+	return false
+}
+
+// PrefixMatches returns true if the error is a terror and the string returned from error.Error() starts with the
+// given param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
+// `bad_request.missing_param`.
+func PrefixMatches(err error, prefix string) bool {
+	if terr, ok := Wrap(err, nil).(*Error); ok {
+		return terr.PrefixMatches(prefix)
+	}
+
+	return false
+}
