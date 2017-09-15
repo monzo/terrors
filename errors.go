@@ -177,3 +177,10 @@ func errCode(prefix, code string) string {
 func (p *Error) Matches(match string) bool {
 	return strings.Contains(p.Error(), match)
 }
+
+// Matches returns true if the error is a terror error and the string returned from error.Error() contains the given
+// param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
+// `bad_request.missing_param` or even on the more descriptive message
+func Matches(err error, match string) bool {
+	return Wrap(err, nil).(*Error).Matches(match)
+}

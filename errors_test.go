@@ -113,7 +113,7 @@ func TestNilError(t *testing.T) {
 	assert.Nil(t, Wrap(nil, nil))
 }
 
-func TestMatches(t *testing.T) {
+func TestMatchesMethod(t *testing.T) {
 	err := &Error{
 		Code:    "bad_request.missing_param.foo",
 		Message: "You need to pass a value for foo; try passing foo=bar",
@@ -123,5 +123,16 @@ func TestMatches(t *testing.T) {
 	assert.False(t, err.Matches(ErrInternalService))
 	assert.False(t, err.Matches(ErrBadRequest+".missing_param.foo1"))
 	assert.True(t, err.Matches("You need to pass a value for foo"))
+}
 
+func TestMatches(t *testing.T) {
+	err := &Error{
+		Code:    "bad_request.missing_param.foo",
+		Message: "You need to pass a value for foo; try passing foo=bar",
+	}
+	assert.True(t, Matches(err, ErrBadRequest))
+	assert.True(t, Matches(err, ErrBadRequest+".missing_param"))
+	assert.False(t, Matches(err, ErrInternalService))
+	assert.False(t, Matches(err, ErrBadRequest+".missing_param.foo1"))
+	assert.True(t, Matches(err, "You need to pass a value for foo"))
 }
