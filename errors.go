@@ -188,12 +188,20 @@ func (p *Error) PrefixMatches(prefix string) bool {
 // param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
 // `bad_request.missing_param` or even on the more descriptive message
 func Matches(err error, match string) bool {
-	return Wrap(err, nil).(*Error).Matches(match)
+	if terr, ok := Wrap(err, nil).(*Error); ok {
+		return terr.Matches(match)
+	}
+
+	return false
 }
 
 // PrefixMatches returns true if the error is a terror and the string returned from error.Error() starts with the
 // given param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
 // `bad_request.missing_param`.
 func PrefixMatches(err error, prefix string) bool {
-	return Wrap(err, nil).(*Error).PrefixMatches(prefix)
+	if terr, ok := Wrap(err, nil).(*Error); ok {
+		return terr.PrefixMatches(prefix)
+	}
+
+	return false
 }

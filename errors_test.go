@@ -135,6 +135,7 @@ func TestMatches(t *testing.T) {
 	assert.False(t, Matches(err, ErrInternalService))
 	assert.False(t, Matches(err, ErrBadRequest+".missing_param.foo1"))
 	assert.True(t, Matches(err, "You need to pass a value for foo"))
+	assert.False(t, Matches(nil, ErrBadRequest))
 }
 
 func TestPrefixMatchesMethod(t *testing.T) {
@@ -161,4 +162,5 @@ func TestPrefixMatches(t *testing.T) {
 	assert.False(t, PrefixMatches(err, ErrBadRequest+".missing_param.foo1"))
 	assert.False(t, PrefixMatches(err, "You need to pass a value for foo"))
 	assert.False(t, PrefixMatches(err, "missing_param"))
+	assert.False(t, PrefixMatches(nil, ErrBadRequest))
 }
