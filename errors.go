@@ -181,7 +181,7 @@ func (p *Error) Matches(match string) bool {
 // PrefixMatches returns whether the string returned from error.Error() starts with the given param string. This means
 // you can match the error on different levels e.g. dotted codes `bad_request` or `bad_request.missing_param`.
 func (p *Error) PrefixMatches(prefix string) bool {
-	return strings.HasPrefix(p.Error(), prefix)
+	return strings.HasPrefix(p.Code, prefix)
 }
 
 // Matches returns true if the error is a terror error and the string returned from error.Error() contains the given
