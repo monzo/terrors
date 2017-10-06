@@ -1,3 +1,20 @@
+// Package terrors implements an error wrapping library.
+//
+// Terrors are used to provide context to an error, offering a stack trace and
+// user defined error parameters.
+//
+// Terrors can be used to wrap any object that satisfies the error interface:
+//	terr := terrors.Wrap(err, map[string]string{"context": "my_context"})
+//
+// Terrors can be instantiated directly:
+// 	err := terrors.New("not_found", "object not found", map[string]string{
+//		"context": "my_context"
+//	})
+//
+// Terrors offers built-in functions for instantiating Errors with common codes:
+//	err := terrors.NotFound("config_file", "config file not found", map[string]string{
+//		"context": my_context
+//	})
 package terrors
 
 import (
@@ -7,6 +24,7 @@ import (
 	"github.com/monzo/terrors/stack"
 )
 
+// Error is terror's error. It implements Go's error interface.
 type Error struct {
 	Code        string            `json:"code"`
 	Message     string            `json:"message"`
@@ -74,6 +92,8 @@ func Wrap(err error, params map[string]string) error {
 	return WrapWithCode(err, params, ErrInternalService)
 }
 
+// WrapWithCode wraps an error with a custom error code. If `err` is already
+// an `Error`, it will be returned without modification.
 func WrapWithCode(err error, params map[string]string, code string) error {
 	if err == nil {
 		return nil
