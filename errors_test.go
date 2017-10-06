@@ -2,6 +2,7 @@ package terrors
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -163,4 +164,24 @@ func TestPrefixMatches(t *testing.T) {
 	assert.False(t, PrefixMatches(err, "You need to pass a value for foo"))
 	assert.False(t, PrefixMatches(err, "missing_param"))
 	assert.False(t, PrefixMatches(nil, ErrBadRequest))
+}
+
+func ExampleWrapWithCode() {
+	fn := "not/a/file"
+	_, err := os.Open(fn)
+	if err != nil {
+		errParams := map[string]string{
+			"filename": fn,
+		}
+		err = WrapWithCode(err, errParams, ErrNotFound)
+		terr := err.(*Error)
+		fmt.Println(terr.Error())
+		// Output: not_found: open not/a/file: no such file or directory
+	}
+}
+
+func ExampleMatches() {
+	err := NotFound("handler_missing", "Handler not found", nil)
+	fmt.Println(Matches(err, "not_found.handler_missing"))
+	// Output: true
 }
