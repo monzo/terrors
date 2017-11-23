@@ -100,7 +100,7 @@ func WrapWithCode(err error, params map[string]string, code string) error {
 	}
 	switch err := err.(type) {
 	case *Error:
-		return err
+		return addParams(err, params)
 	default:
 		return errorFactory(code, err.Error(), params)
 	}
@@ -189,6 +189,24 @@ func errCode(prefix, code string) string {
 		return code
 	}
 	return strings.Join([]string{prefix, code}, ".")
+}
+
+// addParams returns a new error with new params merged into the original error's
+func addParams(err *Error, params map[string]string) *Error {
+	copiedParams := make(map[string]string, len(err.Params)+len(params))
+	for k, v := range err.Params {
+		copiedParams[k] = v
+	}
+	for k, v := range params {
+		copiedParams[k] = v
+	}
+
+	return &Error{
+		Code:        err.Code,
+		Message:     err.Message,
+		Params:      copiedParams,
+		StackFrames: err.StackFrames,
+	}
 }
 
 // Matches returns whether the string returned from error.Error() contains the given param string. This means you can

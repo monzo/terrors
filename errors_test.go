@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/monzo/terrors/stack"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -70,8 +71,9 @@ func TestNew(t *testing.T) {
 
 func TestWrapWithWrappedErr(t *testing.T) {
 	err := &Error{
-		Code:    ErrForbidden,
-		Message: "Some message",
+		Code:        ErrForbidden,
+		Message:     "Some message",
+		StackFrames: stack.BuildStack(0),
 		Params: map[string]string{
 			"something old": "caesar",
 		},
@@ -81,10 +83,12 @@ func TestWrapWithWrappedErr(t *testing.T) {
 		"something new": "a computer",
 	}).(*Error)
 
-	assert.Equal(t, wrappedErr, err)
-	assert.Equal(t, ErrForbidden, wrappedErr.Code)
+	assert.Equal(t, err.Code, wrappedErr.Code)
+	assert.Equal(t, err.StackFrames, wrappedErr.StackFrames)
+	assert.Equal(t, err.Message, wrappedErr.Message)
 	assert.Equal(t, wrappedErr.Params, map[string]string{
 		"something old": "caesar",
+		"something new": "a computer",
 	})
 
 }
