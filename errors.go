@@ -18,6 +18,7 @@
 package terrors
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -43,6 +44,7 @@ const (
 	ErrPreconditionFailed = "precondition_failed"
 	ErrTimeout            = "timeout"
 	ErrUnauthorized       = "unauthorized"
+	ErrContextCanceled    = "context_canceled"
 	ErrUnknown            = "unknown"
 )
 
@@ -163,7 +165,12 @@ func errorFactory(code string, message string, params map[string]string) *Error 
 		Message: message,
 		Params:  map[string]string{},
 	}
-	if len(code) > 0 {
+	switch {
+	// Special case to catch errors from context cancelation in the typhon http client
+	// This calls Wrap without additional params, so defaults to ErrInternalService
+	case code == ErrInternalService && message == context.Canceled.Error():
+		err.Code = ErrContextCanceled
+	case len(code) > 0:
 		err.Code = code
 	}
 	if params != nil {
