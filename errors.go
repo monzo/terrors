@@ -79,6 +79,12 @@ func (p *Error) Format(f fmt.State, c rune) {
 	f.Write([]byte(p.Message))
 }
 
+// LogMetadata implements the logMetadataProvider interface in the slog library which means that
+// the error params will automatically be merged with the slog metadata.
+func (p *Error) LogMetadata() map[string]string {
+	return p.Params
+}
+
 // New creates a new error for you. Use this if you want to pass along a custom error code.
 // Otherwise use the handy shorthand factories below
 func New(code string, message string, params map[string]string) *Error {
