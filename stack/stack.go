@@ -29,8 +29,8 @@ type Stack []*Frame
 func BuildStack(skip int) Stack {
 	stack := make(Stack, 0)
 
-	// Look up to a maximum depth of 20
-	ret := make([]uintptr, 20)
+	// Look up to a maximum depth of 100
+	ret := make([]uintptr, 100)
 
 	// Note that indexes must be one higher when passed to Callers()
 	// than they would be when passed to Caller()
