@@ -29,19 +29,33 @@ type Stack []*Frame
 func BuildStack(skip int) Stack {
 	stack := make(Stack, 0)
 
-	for i := skip; ; i++ {
-		pc, file, line, ok := runtime.Caller(i)
-		if !ok {
-			break
-		}
-		file = shortenFilePath(file)
-		stack = append(stack, &Frame{
-			Filename: file,
-			Method:   functionName(pc),
-			Line:     line,
-		})
+	// Look up to a maximum depth of 100
+	ret := make([]uintptr, 100)
+
+	// Note that indexes must be one higher when passed to Callers()
+	// than they would be when passed to Caller()
+	// see https://golang.org/pkg/runtime/#Caller
+	index := runtime.Callers(skip+1, ret)
+	if index == 0 {
+		// We have no frames to report, skip must be too high
+		return stack
 	}
 
+	// This function takes a list of counters and gets function/file/line information
+	cf := runtime.CallersFrames(ret[:index])
+
+	for {
+		frame, ok := cf.Next()
+		stack = append(stack, &Frame{
+			Filename: shortenFilePath(frame.File),
+			Method:   functionName(frame.PC),
+			Line:     frame.Line,
+		})
+		if !ok {
+			// This was the last valid caller
+			break
+		}
+	}
 	return stack
 }
 
