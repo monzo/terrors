@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/monzo/terrors/stack"
+	"strconv"
 )
 
 // Error is terror's error. It implements Go's error interface.
@@ -81,8 +82,23 @@ func (p *Error) Format(f fmt.State, c rune) {
 
 // LogMetadata implements the logMetadataProvider interface in the slog library which means that
 // the error params will automatically be merged with the slog metadata.
+// Additionally we put stack data in here for slog use.
 func (p *Error) LogMetadata() map[string]string {
-	return p.Params
+	if len(p.StackFrames) == 0 {
+		return p.Params
+	}
+
+	logParams := map[string]string{
+		"terrors_file":     p.StackFrames[0].Filename,
+		"terrors_function": p.StackFrames[0].Method,
+		"terrors_line":     strconv.Itoa(p.StackFrames[0].Line),
+	}
+
+	for key, value := range p.Params {
+		logParams[key] = value
+	}
+
+	return logParams
 }
 
 // New creates a new error for you. Use this if you want to pass along a custom error code.
