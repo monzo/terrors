@@ -84,10 +84,14 @@ func (p *Error) Format(f fmt.State, c rune) {
 // the error params will automatically be merged with the slog metadata.
 // Additionally we put stack data in here for slog use.
 func (p *Error) LogMetadata() map[string]string {
+	if len(p.StackFrames) == 0 {
+		return p.Params
+	}
+
 	logParams := map[string]string{
-		"terrors_file": p.StackFrames[0].Filename,
+		"terrors_file":     p.StackFrames[0].Filename,
 		"terrors_function": p.StackFrames[0].Method,
-		"terrors_line":strconv.Itoa(p.StackFrames[0].Line),
+		"terrors_line":     strconv.Itoa(p.StackFrames[0].Line),
 	}
 
 	for key, value := range p.Params {
