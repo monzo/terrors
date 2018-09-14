@@ -12,9 +12,7 @@ import (
 type newError func(code, message string, params map[string]string) *Error
 
 func TestLogParams(t *testing.T) {
-	err := New("service.foo", "Some message", map[string]string{
-		"public": "value",
-	})
+	err := New("service.foo", "Some message", map[string]string{"public": "value"})
 
 	assert.Equal(t, "value", err.LogMetadata()["public"])
 	assert.Equal(t, "15", err.LogMetadata()["terrors_line"])
