@@ -19,9 +19,8 @@ package terrors
 
 import (
 	"fmt"
-	"strings"
-
 	"strconv"
+	"strings"
 
 	"github.com/monzo/terrors/stack"
 )
