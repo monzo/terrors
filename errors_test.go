@@ -15,7 +15,6 @@ func TestLogParams(t *testing.T) {
 	err := New("service.foo", "Some message", map[string]string{"public": "value"})
 
 	assert.Equal(t, "value", err.LogMetadata()["public"])
-	assert.Equal(t, "777", err.LogMetadata()["terrors_line"])
 	assert.Equal(t, "testing.tRunner", err.LogMetadata()["terrors_function"])
 }
 
