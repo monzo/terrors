@@ -19,10 +19,10 @@ package terrors
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/monzo/terrors/stack"
-	"strconv"
 )
 
 // Error is terror's error. It implements Go's error interface.
@@ -88,10 +88,18 @@ func (p *Error) LogMetadata() map[string]string {
 		return p.Params
 	}
 
+	// Attempt to find a frame that isn't within the terrors library.
+	var frame *stack.Frame
+	for _, frame = range p.StackFrames {
+		if !strings.HasPrefix(frame.Method, "terrors.") {
+			break
+		}
+	}
+
 	logParams := map[string]string{
-		"terrors_file":     p.StackFrames[0].Filename,
-		"terrors_function": p.StackFrames[0].Method,
-		"terrors_line":     strconv.Itoa(p.StackFrames[0].Line),
+		"terrors_file":     frame.Filename,
+		"terrors_function": frame.Method,
+		"terrors_line":     strconv.Itoa(frame.Line),
 	}
 
 	for key, value := range p.Params {

@@ -15,9 +15,7 @@ func TestLogParams(t *testing.T) {
 	err := New("service.foo", "Some message", map[string]string{"public": "value"})
 
 	assert.Equal(t, "value", err.LogMetadata()["public"])
-	assert.Equal(t, "15", err.LogMetadata()["terrors_line"])
-	assert.Equal(t, "terrors.TestLogParams", err.LogMetadata()["terrors_function"])
-	assert.Equal(t, "github.com/monzo/terrors/errors_test.go", err.LogMetadata()["terrors_file"])
+	assert.Equal(t, "testing.tRunner", err.LogMetadata()["terrors_function"])
 }
 
 func TestErrorConstructors(t *testing.T) {
