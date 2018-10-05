@@ -90,10 +90,22 @@ func (p *Error) LogMetadata() map[string]string {
 
 	// Attempt to find a frame that isn't within the terrors library.
 	var frame *stack.Frame
-	for _, frame = range p.StackFrames {
-		if !strings.HasPrefix(frame.Method, "terrors.") {
-			break
+	var frames []*stack.Frame
+	for _, f := range p.StackFrames {
+		if frame == nil && !strings.HasPrefix(f.Method, "terrors.") {
+			frame = f
 		}
+		if frame != nil {
+			frames = append(frames, f)
+		}
+	}
+	if len(frames) == 0 {
+		return p.Params
+	}
+
+	stackPCs := make([]string, len(frames))
+	for i, f := range frames {
+		stackPCs[i] = strconv.FormatUint(uint64(f.PC), 10)
 	}
 
 	logParams := map[string]string{
@@ -101,6 +113,7 @@ func (p *Error) LogMetadata() map[string]string {
 		"terrors_function": frame.Method,
 		"terrors_line":     strconv.Itoa(frame.Line),
 		"terrors_pc":       strconv.FormatUint(uint64(frame.PC), 10),
+		"terrors_stack":    strings.Join(stackPCs, ","),
 	}
 
 	for key, value := range p.Params {
