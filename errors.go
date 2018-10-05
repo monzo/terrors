@@ -100,6 +100,7 @@ func (p *Error) LogMetadata() map[string]string {
 		"terrors_file":     frame.Filename,
 		"terrors_function": frame.Method,
 		"terrors_line":     strconv.Itoa(frame.Line),
+		"terrors_pc":       strconv.FormatUint(uint64(frame.PC), 10),
 	}
 
 	for key, value := range p.Params {
