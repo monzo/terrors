@@ -12,10 +12,24 @@ import (
 type newError func(code, message string, params map[string]string) *Error
 
 func TestLogParams(t *testing.T) {
-	err := New("service.foo", "Some message", map[string]string{"public": "value"})
+	errors := []Error{
+		{
+			Code:        "service.foo",
+			Message:     "Some message",
+			Params:      map[string]string{"public": "value"},
+			StackFrames: nil,
+		},
+		*New("service.foo", "Some message", map[string]string{"public": "value"}),
+	}
 
-	assert.Equal(t, "value", err.LogMetadata()["public"])
-	assert.Equal(t, "testing.tRunner", err.LogMetadata()["terrors_function"])
+	for _, err := range errors {
+		assert.Equal(t, "value", err.LogMetadata()["public"])
+		if err.StackFrames != nil {
+			assert.Equal(t, "testing.tRunner", err.LogMetadata()["terrors_function"])
+		} else {
+			assert.Equal(t, err.Params, err.LogMetadata())
+		}
+	}
 }
 
 func TestErrorConstructors(t *testing.T) {
@@ -27,6 +41,9 @@ func TestErrorConstructors(t *testing.T) {
 		params       map[string]string
 		expectedCode string
 	}{
+		{
+			InternalService, "service.foo", "internal_service.service.foo", nil, ErrInternalService,
+		},
 		{
 			BadRequest, "service.foo", "bad_request.service.foo", nil, ErrBadRequest,
 		},
@@ -50,6 +67,9 @@ func TestErrorConstructors(t *testing.T) {
 				"some key":    "some value",
 				"another key": "another value",
 			}, ErrUnauthorized,
+		},
+		{
+			PreconditionFailed, "service.foo", "precondition_failed.service.foo", nil, ErrPreconditionFailed,
 		},
 	}
 
@@ -113,6 +133,43 @@ func TestWrap(t *testing.T) {
 		"blub": "dub",
 	})
 
+}
+
+func TestErrorString(t *testing.T) {
+	tt := []struct {
+		given    *Error
+		expected string
+	}{
+		{
+			nil,
+			"",
+		},
+		{
+			&Error{
+				Code:    "",
+				Message: "Error with no code",
+			},
+			"Error with no code",
+		},
+		{
+			New("no_message", "", nil),
+			"no_message",
+		},
+		{
+			&Error{
+				Code:    "",
+				Message: "",
+			},
+			"",
+		},
+		{
+			New("unknown", "error message", nil),
+			"unknown: error message",
+		},
+	}
+	for _, tc := range tt {
+		assert.Equal(t, tc.expected, tc.given.Error())
+	}
 }
 
 func getNilErr() error {

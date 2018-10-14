@@ -28,7 +28,7 @@ Terrors offers built-in functions for instantiating `Error`s with common codes:
 
 ```go
 err := terrors.NotFound("config_file", "config file not found", map[string]string{
-	"context": my_context
+	"context": "my_context",
 })
 ```
 

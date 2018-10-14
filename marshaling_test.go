@@ -15,7 +15,7 @@ func TestMarshalNilError(t *testing.T) {
 
 	assert.NotNil(t, protoError)
 	assert.Equal(t, ErrUnknown, protoError.Code)
-	assert.NotEmpty(t, protoError.Message)
+	assert.Equal(t, "Unknown error, nil error marshalled", protoError.Message)
 }
 
 func TestUnmarshalNilError(t *testing.T) {

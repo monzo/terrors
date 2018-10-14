@@ -13,7 +13,7 @@
 //
 // Terrors offers built-in functions for instantiating Errors with common codes:
 //	err := terrors.NotFound("config_file", "config file not found", map[string]string{
-//		"context": my_context
+//		"context": "my_context"
 //	})
 package terrors
 
@@ -186,15 +186,15 @@ func PreconditionFailed(code, message string, params map[string]string) *Error {
 	return errorFactory(errCode(ErrPreconditionFailed, code), message, params)
 }
 
-// errorConstructor returns a `*Error` with the specified code, message and params.
-// Builds a stack based on the current call stack
+// errorFactory returns a `*Error` with the specified code, message and params.
+// Builds a stack based on the current call stack.
 func errorFactory(code string, message string, params map[string]string) *Error {
 	err := &Error{
 		Code:    ErrUnknown,
 		Message: message,
 		Params:  map[string]string{},
 	}
-	if len(code) > 0 {
+	if code != "" {
 		err.Code = code
 	}
 	if params != nil {
