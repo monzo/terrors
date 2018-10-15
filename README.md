@@ -1,7 +1,7 @@
 `terrors`
 =========
 
-[![Build Status](https://travis-ci.org/monzo/terrors.svg)](https://travis-ci.org/monzo/terrors)
+[![Build Status](https://travis-ci.org/monzo/terrors.svg?branch=master)](https://travis-ci.org/monzo/terrors)
 [![GoDoc](https://godoc.org/github.com/monzo/terrors?status.svg)](https://godoc.org/github.com/monzo/terrors)
 
 Terrors is a package for wrapping Golang errors. Terrors provides additional
