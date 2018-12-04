@@ -76,10 +76,6 @@ func (p *Error) VerboseString() string {
 	return fmt.Sprintf("%s\nParams: %+v\n%s", p.Error(), p.Params, p.StackString())
 }
 
-func (p *Error) Format(f fmt.State, c rune) {
-	f.Write([]byte(p.Message))
-}
-
 // LogMetadata implements the logMetadataProvider interface in the slog library which means that
 // the error params will automatically be merged with the slog metadata.
 // Additionally we put stack data in here for slog use.
