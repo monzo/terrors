@@ -157,8 +157,10 @@ func TestPrefixMatchesMethod(t *testing.T) {
 	}
 	assert.True(t, err.PrefixMatches(ErrBadRequest))
 	assert.True(t, err.PrefixMatches(ErrBadRequest+".missing_param"))
+	assert.True(t, err.PrefixMatches(ErrBadRequest, "missing_param"))
 	assert.False(t, err.PrefixMatches(ErrInternalService))
 	assert.False(t, err.PrefixMatches(ErrBadRequest+".missing_param.foo1"))
+	assert.False(t, err.PrefixMatches(ErrBadRequest, "missing_param", "foo1"))
 	assert.False(t, err.PrefixMatches("You need to pass a value for foo"))
 	assert.False(t, err.PrefixMatches("missing_param"))
 }
@@ -170,8 +172,10 @@ func TestPrefixMatches(t *testing.T) {
 	}
 	assert.True(t, PrefixMatches(err, ErrBadRequest))
 	assert.True(t, PrefixMatches(err, ErrBadRequest+".missing_param"))
+	assert.True(t, PrefixMatches(err, ErrBadRequest, "missing_param"))
 	assert.False(t, PrefixMatches(err, ErrInternalService))
 	assert.False(t, PrefixMatches(err, ErrBadRequest+".missing_param.foo1"))
+	assert.False(t, PrefixMatches(err, ErrBadRequest, "missing_param", "foo1"))
 	assert.False(t, PrefixMatches(err, "You need to pass a value for foo"))
 	assert.False(t, PrefixMatches(err, "missing_param"))
 	assert.False(t, PrefixMatches(nil, ErrBadRequest))
