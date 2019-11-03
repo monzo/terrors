@@ -1,6 +1,7 @@
 package terrors
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -113,6 +114,12 @@ func TestWrap(t *testing.T) {
 		"blub": "dub",
 	})
 
+}
+
+func TestWrapContextCanceled(t *testing.T) {
+	err := context.Canceled
+	wrappedErr := Wrap(err, nil).(*Error)
+	assert.Equal(t, ErrContextCanceled, wrappedErr.Code)
 }
 
 func getNilErr() error {
