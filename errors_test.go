@@ -5,8 +5,10 @@ import (
 	"os"
 	"testing"
 
+	"errors"
 	"github.com/monzo/terrors/stack"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type newError func(code, message string, params map[string]string) *Error
@@ -179,6 +181,32 @@ func TestPrefixMatches(t *testing.T) {
 	assert.False(t, PrefixMatches(err, "You need to pass a value for foo"))
 	assert.False(t, PrefixMatches(err, "missing_param"))
 	assert.False(t, PrefixMatches(nil, ErrBadRequest))
+}
+
+type CustomError struct {
+	err error
+}
+
+func (e *CustomError) Error() string {
+	return "Not the droids you are looking for"
+}
+
+func (e *CustomError) Unwrap() error {
+	return e.err
+}
+
+func TestIs(t *testing.T) {
+	err := BadRequest("missing_param.foo", "You need to pass a value for foo; try passing foo=bar", nil)
+	assert.True(t, errors.Is(err, ErrTypeBadRequest))
+
+	cerr := &CustomError{err: err}
+	assert.True(t, errors.Is(cerr, ErrTypeBadRequest))
+
+	assert.Equal(t, "Not the droids you are looking for", cerr.Error())
+	var terr *Error
+	require.True(t, errors.As(cerr, &terr))
+	assert.Equal(t, ErrBadRequest+".missing_param.foo", terr.Code)
+	assert.Equal(t, "You need to pass a value for foo; try passing foo=bar", terr.Message)
 }
 
 func ExampleWrapWithCode() {
