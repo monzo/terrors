@@ -125,21 +125,32 @@ func New(code string, message string, params map[string]string) *Error {
 // Wrap takes any error interface and wraps it into an Error.
 // This is useful because an Error contains lots of useful goodies, like the stacktrace of the error.
 // NOTE: If `err` is already an `Error`, it will add the params passed in to the params of the Error
-func Wrap(err error, params map[string]string) error {
-	return WrapWithCode(err, params, ErrInternalService)
+func Wrap(err error, params map[string]string, messages ...string) error {
+	return WrapWithCode(err, params, ErrInternalService, messages...)
 }
 
 // WrapWithCode wraps an error with a custom error code. If `err` is already
 // an `Error`, it will add the params passed in to the params of the error
-func WrapWithCode(err error, params map[string]string, code string) error {
+func WrapWithCode(err error, params map[string]string, code string, messages ...string) error {
 	if err == nil {
 		return nil
 	}
-	switch err := err.(type) {
+
+	message := ""
+	if len(messages) > 0 {
+		message = messages[0]
+	}
+
+	switch terr := err.(type) {
 	case *Error:
-		return addParams(err, params)
+		return wrapExistingTerror(terr, params, message)
 	default:
-		return errorFactory(code, err.Error(), params, err)
+		errMessage := err.Error()
+		if message != "" {
+			errMessage = fmt.Sprintf("%s: %v", message, err)
+		}
+
+		return errorFactory(code, errMessage, params, err)
 	}
 }
 
@@ -235,8 +246,8 @@ func errCode(prefix, code string) string {
 	return strings.Join([]string{prefix, code}, ".")
 }
 
-// addParams returns a new error with new params merged into the original error's
-func addParams(err *Error, params map[string]string) *Error {
+// wrapExistingTerror returns a new error with new params merged into the original error's
+func wrapExistingTerror(err *Error, params map[string]string, message string) *Error {
 	copiedParams := make(map[string]string, len(err.Params)+len(params))
 	for k, v := range err.Params {
 		copiedParams[k] = v
@@ -245,9 +256,14 @@ func addParams(err *Error, params map[string]string) *Error {
 		copiedParams[k] = v
 	}
 
+	errMessage := err.Message
+	if message != "" {
+		errMessage = fmt.Sprintf("%s: %s", message, err.Message)
+	}
+
 	return &Error{
 		Code:        err.Code,
-		Message:     err.Message,
+		Message:     errMessage,
 		Params:      copiedParams,
 		StackFrames: err.StackFrames,
 		err:         err,
