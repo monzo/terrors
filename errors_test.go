@@ -125,9 +125,7 @@ func TestWrap(t *testing.T) {
 
 func TestWrappedErrorsCanBeUnwrapped(t *testing.T) {
 	err := &customError{"foo"}
-	wrappedErr := Wrap(err, map[string]string{
-		"bar": "baz",
-	})
+	wrappedErr := Wrap(err, nil)
 
 	var unwrappedErr *customError
 	match := errors.As(wrappedErr, &unwrappedErr)
