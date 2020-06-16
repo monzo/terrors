@@ -1,6 +1,7 @@
 package terrors
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -10,6 +11,14 @@ import (
 )
 
 type newError func(code, message string, params map[string]string) *Error
+
+type customError struct {
+	message string
+}
+
+func (c *customError) Error() string {
+	return c.message
+}
 
 func TestLogParams(t *testing.T) {
 	err := New("service.foo", "Some message", map[string]string{"public": "value"})
@@ -112,7 +121,19 @@ func TestWrap(t *testing.T) {
 	assert.Equal(t, wrappedErr.Params, map[string]string{
 		"blub": "dub",
 	})
+}
 
+func TestWrappedErrorsCanBeUnwrapped(t *testing.T) {
+	err := &customError{"foo"}
+	wrappedErr := Wrap(err, map[string]string{
+		"bar": "baz",
+	})
+
+	var unwrappedErr *customError
+	match := errors.As(wrappedErr, &unwrappedErr)
+
+	assert.True(t, match)
+	assert.Equal(t, err, unwrappedErr)
 }
 
 func getNilErr() error {
