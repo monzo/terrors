@@ -136,6 +136,17 @@ func TestWrappedErrorsCanBeUnwrapped(t *testing.T) {
 	assert.Equal(t, err, unwrappedErr)
 }
 
+func TestWrappedTerrorsCanBeUnwrapped(t *testing.T) {
+	err := &customError{"foo"}
+	doubleWrappedErr := Wrap(Wrap(err, nil), nil)
+
+	var unwrappedErr *customError
+	match := errors.As(doubleWrappedErr, &unwrappedErr)
+
+	assert.True(t, match)
+	assert.Equal(t, err, unwrappedErr)
+}
+
 func getNilErr() error {
 	return Wrap(nil, nil)
 }
