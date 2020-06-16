@@ -136,6 +136,8 @@ func WrapWithCode(err error, params map[string]string, code string, messages ...
 		return nil
 	}
 
+	// We're using a variadic function here but only a single message is actually used.
+	// This is designed to ensure backwards compatability for usages without a message.
 	message := ""
 	if len(messages) > 0 {
 		message = messages[0]
