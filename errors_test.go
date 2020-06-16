@@ -123,7 +123,7 @@ func TestWrap(t *testing.T) {
 	})
 }
 
-func TestWrapWithMessage(t *testing.T) {
+func TestWrapErrorWithMessage(t *testing.T) {
 	err := fmt.Errorf("Look here, an error")
 	wrappedErr := Wrap(err, nil, "loading data").(*Error)
 
@@ -131,7 +131,7 @@ func TestWrapWithMessage(t *testing.T) {
 	assert.Equal(t, "loading data: Look here, an error", wrappedErr.Message)
 }
 
-func TestTerrorWrapWithMessage(t *testing.T) {
+func TestWrapTerrorWithMessage(t *testing.T) {
 	err := BadRequest("name", "invalid name", nil)
 	wrappedErr := Wrap(err, nil, "loading data").(*Error)
 
@@ -139,7 +139,7 @@ func TestTerrorWrapWithMessage(t *testing.T) {
 	assert.Equal(t, "loading data: invalid name", wrappedErr.Message)
 }
 
-func TestWrappedErrorsCanBeUnwrapped(t *testing.T) {
+func TestWrappedErrorCanBeUnwrapped(t *testing.T) {
 	err := &customError{"foo"}
 	wrappedErr := Wrap(err, nil)
 
@@ -150,7 +150,7 @@ func TestWrappedErrorsCanBeUnwrapped(t *testing.T) {
 	assert.Equal(t, err, unwrappedErr)
 }
 
-func TestWrappedTerrorsCanBeUnwrapped(t *testing.T) {
+func TestWrappedTerrorCanBeUnwrapped(t *testing.T) {
 	err := &customError{"foo"}
 	doubleWrappedErr := Wrap(Wrap(err, nil), nil)
 
