@@ -31,7 +31,14 @@ type Error struct {
 	Message     string            `json:"message"`
 	Params      map[string]string `json:"params"`
 	StackFrames stack.Stack       `json:"stack"`
-	err         error
+
+	// cause represents the underling cause of an error and will be `nil` unless
+	// one of the `Propagate...` methods are used (the deprecated `Wrap` methods
+	// do not set the `cause` property to maintain backwards compatability).
+	// Because errors cannot be serialised as JSON this field is left unexported.
+	// This means that the cause of an error cannot be examined across service
+	// boundaries.
+	cause error
 }
 
 // Generic error codes. Each of these has their own constructor for convenience.
@@ -119,112 +126,99 @@ func (p *Error) LogMetadata() map[string]string {
 // New creates a new error for you. Use this if you want to pass along a custom error code.
 // Otherwise use the handy shorthand factories below
 func New(code string, message string, params map[string]string) *Error {
-	return errorFactory(code, message, params, nil)
+	return errorFactory(code, message, params)
 }
 
 // Wrap takes any error interface and wraps it into an Error.
 // This is useful because an Error contains lots of useful goodies, like the stacktrace of the error.
 // NOTE: If `err` is already an `Error`, it will add the params passed in to the params of the Error
-func Wrap(err error, params map[string]string, messages ...string) error {
-	return WrapWithCode(err, params, ErrInternalService, messages...)
+func Wrap(err error, params map[string]string) error {
+	return WrapWithCode(err, params, ErrInternalService)
 }
 
 // WrapWithCode wraps an error with a custom error code. If `err` is already
 // an `Error`, it will add the params passed in to the params of the error
-func WrapWithCode(err error, params map[string]string, code string, messages ...string) error {
+func WrapWithCode(err error, params map[string]string, code string) error {
 	if err == nil {
 		return nil
 	}
 
-	// We're using a variadic function here but only a single message is actually used.
-	// This is designed to ensure backwards compatability for usages without a message.
-	message := ""
-	if len(messages) > 0 {
-		message = messages[0]
-	}
-
-	switch terr := err.(type) {
+	switch err := err.(type) {
 	case *Error:
-		return wrapExistingTerror(terr, params, message)
+		return addParams(err, params)
 	default:
-		errMessage := err.Error()
-		if message != "" {
-			errMessage = fmt.Sprintf("%s: %v", message, err)
-		}
-
-		return errorFactory(code, errMessage, params, err)
+		return errorFactory(code, err.Error(), params)
 	}
 }
 
 // Unwrap returns the underlying wrapped error. This allows for support with
 // `errors.Is` and `errors.As`.
 func (p *Error) Unwrap() error {
-	return p.err
+	return p.cause
 }
 
 // InternalService creates a new error to represent an internal service error.
 // Only use internal service error if we know very little about the error. Most
 // internal service errors will come from `Wrap`ing a vanilla `error` interface
 func InternalService(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrInternalService, code), message, params, nil)
+	return errorFactory(errCode(ErrInternalService, code), message, params)
 }
 
 // BadRequest creates a new error to represent an error caused by the client sending
 // an invalid request. This is non-retryable unless the request is modified.
 func BadRequest(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrBadRequest, code), message, params, nil)
+	return errorFactory(errCode(ErrBadRequest, code), message, params)
 }
 
 // BadResponse creates a new error representing a failure to response with a valid response
 // Examples of this would be a handler returning an invalid message format
 func BadResponse(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrBadResponse, code), message, params, nil)
+	return errorFactory(errCode(ErrBadResponse, code), message, params)
 }
 
 // Timeout creates a new error representing a timeout from client to server
 func Timeout(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrTimeout, code), message, params, nil)
+	return errorFactory(errCode(ErrTimeout, code), message, params)
 }
 
 // NotFound creates a new error representing a resource that cannot be found. In some
 // cases this is not an error, and would be better represented by a zero length slice of elements
 func NotFound(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrNotFound, code), message, params, nil)
+	return errorFactory(errCode(ErrNotFound, code), message, params)
 }
 
 // Forbidden creates a new error representing a resource that cannot be accessed with
 // the current authorisation credentials. The user may need authorising, or if authorised,
 // may not be permitted to perform this action
 func Forbidden(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrForbidden, code), message, params, nil)
+	return errorFactory(errCode(ErrForbidden, code), message, params)
 }
 
 // Unauthorized creates a new error indicating that authentication is required,
 // but has either failed or not been provided.
 func Unauthorized(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrUnauthorized, code), message, params, nil)
+	return errorFactory(errCode(ErrUnauthorized, code), message, params)
 }
 
 // PreconditionFailed creates a new error indicating that one or more conditions
 // given in the request evaluated to false when tested on the server.
 func PreconditionFailed(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrPreconditionFailed, code), message, params, nil)
+	return errorFactory(errCode(ErrPreconditionFailed, code), message, params)
 }
 
 // errorConstructor returns a `*Error` with the specified code, message and params.
 // Builds a stack based on the current call stack
-func errorFactory(code string, message string, params map[string]string, err error) *Error {
-	terr := &Error{
+func errorFactory(code string, message string, params map[string]string) *Error {
+	err := &Error{
 		Code:    ErrUnknown,
 		Message: message,
 		Params:  map[string]string{},
-		err:     err,
 	}
 	if len(code) > 0 {
-		terr.Code = code
+		err.Code = code
 	}
 	if params != nil {
-		terr.Params = params
+		err.Params = params
 	}
 
 	// TODO pass in context.Context
@@ -233,9 +227,9 @@ func errorFactory(code string, message string, params map[string]string, err err
 	//  - stack.go BuildStack()
 	//  - errors.go errorFactory()
 	//  - errors.go public constructor method
-	terr.StackFrames = stack.BuildStack(3)
+	err.StackFrames = stack.BuildStack(3)
 
-	return terr
+	return err
 }
 
 func errCode(prefix, code string) string {
@@ -248,8 +242,8 @@ func errCode(prefix, code string) string {
 	return strings.Join([]string{prefix, code}, ".")
 }
 
-// wrapExistingTerror returns a new error with new params merged into the original error's
-func wrapExistingTerror(err *Error, params map[string]string, message string) *Error {
+// addParams returns a new error with new params merged into the original error's
+func addParams(err *Error, params map[string]string) *Error {
 	copiedParams := make(map[string]string, len(err.Params)+len(params))
 	for k, v := range err.Params {
 		copiedParams[k] = v
@@ -258,17 +252,11 @@ func wrapExistingTerror(err *Error, params map[string]string, message string) *E
 		copiedParams[k] = v
 	}
 
-	errMessage := err.Message
-	if message != "" {
-		errMessage = fmt.Sprintf("%s: %s", message, err.Message)
-	}
-
 	return &Error{
 		Code:        err.Code,
-		Message:     errMessage,
+		Message:     err.Message,
 		Params:      copiedParams,
 		StackFrames: err.StackFrames,
-		err:         err,
 	}
 }
 
