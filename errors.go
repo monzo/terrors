@@ -126,7 +126,7 @@ func (p *Error) LogMetadata() map[string]string {
 // New creates a new error for you. Use this if you want to pass along a custom error code.
 // Otherwise use the handy shorthand factories below
 func New(code string, message string, params map[string]string) *Error {
-	return errorFactory(code, message, params)
+	return errorFactory(nil, code, message, params)
 }
 
 // Wrap takes any error interface and wraps it into an Error.
@@ -134,6 +134,39 @@ func New(code string, message string, params map[string]string) *Error {
 // NOTE: If `err` is already an `Error`, it will add the params passed in to the params of the Error
 func Wrap(err error, params map[string]string) error {
 	return WrapWithCode(err, params, ErrInternalService)
+}
+
+func Propagate(cause error, msg string, params map[string]string) error {
+	return PropagateWithCode(cause, ErrInternalService, msg, params)
+}
+
+func PropagateWithCode(cause error, code string, msg string, params map[string]string) error {
+	if cause == nil {
+		return nil
+	}
+
+	switch cause := cause.(type) {
+	case *Error:
+		errString := cause.Message
+		if msg != "" {
+			errString = fmt.Sprintf("%s: %s", msg, cause.Message)
+		}
+
+		return &Error{
+			Code:        cause.Code,
+			Message:     errString,
+			Params:      merge(cause.Params, params),
+			StackFrames: cause.StackFrames,
+			cause:       cause,
+		}
+	default:
+		errString := cause.Error()
+		if msg != "" {
+			errString = fmt.Sprintf("%s: %v", msg, cause)
+		}
+
+		return errorFactory(cause, code, errString, params)
+	}
 }
 
 // WrapWithCode wraps an error with a custom error code. If `err` is already
@@ -147,7 +180,7 @@ func WrapWithCode(err error, params map[string]string, code string) error {
 	case *Error:
 		return addParams(err, params)
 	default:
-		return errorFactory(code, err.Error(), params)
+		return errorFactory(nil, code, err.Error(), params)
 	}
 }
 
@@ -161,58 +194,59 @@ func (p *Error) Unwrap() error {
 // Only use internal service error if we know very little about the error. Most
 // internal service errors will come from `Wrap`ing a vanilla `error` interface
 func InternalService(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrInternalService, code), message, params)
+	return errorFactory(nil, errCode(ErrInternalService, code), message, params)
 }
 
 // BadRequest creates a new error to represent an error caused by the client sending
 // an invalid request. This is non-retryable unless the request is modified.
 func BadRequest(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrBadRequest, code), message, params)
+	return errorFactory(nil, errCode(ErrBadRequest, code), message, params)
 }
 
 // BadResponse creates a new error representing a failure to response with a valid response
 // Examples of this would be a handler returning an invalid message format
 func BadResponse(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrBadResponse, code), message, params)
+	return errorFactory(nil, errCode(ErrBadResponse, code), message, params)
 }
 
 // Timeout creates a new error representing a timeout from client to server
 func Timeout(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrTimeout, code), message, params)
+	return errorFactory(nil, errCode(ErrTimeout, code), message, params)
 }
 
 // NotFound creates a new error representing a resource that cannot be found. In some
 // cases this is not an error, and would be better represented by a zero length slice of elements
 func NotFound(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrNotFound, code), message, params)
+	return errorFactory(nil, errCode(ErrNotFound, code), message, params)
 }
 
 // Forbidden creates a new error representing a resource that cannot be accessed with
 // the current authorisation credentials. The user may need authorising, or if authorised,
 // may not be permitted to perform this action
 func Forbidden(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrForbidden, code), message, params)
+	return errorFactory(nil, errCode(ErrForbidden, code), message, params)
 }
 
 // Unauthorized creates a new error indicating that authentication is required,
 // but has either failed or not been provided.
 func Unauthorized(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrUnauthorized, code), message, params)
+	return errorFactory(nil, errCode(ErrUnauthorized, code), message, params)
 }
 
 // PreconditionFailed creates a new error indicating that one or more conditions
 // given in the request evaluated to false when tested on the server.
 func PreconditionFailed(code, message string, params map[string]string) *Error {
-	return errorFactory(errCode(ErrPreconditionFailed, code), message, params)
+	return errorFactory(nil, errCode(ErrPreconditionFailed, code), message, params)
 }
 
 // errorConstructor returns a `*Error` with the specified code, message and params.
 // Builds a stack based on the current call stack
-func errorFactory(code string, message string, params map[string]string) *Error {
+func errorFactory(cause error, code string, message string, params map[string]string) *Error {
 	err := &Error{
 		Code:    ErrUnknown,
 		Message: message,
 		Params:  map[string]string{},
+		cause:   cause,
 	}
 	if len(code) > 0 {
 		err.Code = code
@@ -258,6 +292,17 @@ func addParams(err *Error, params map[string]string) *Error {
 		Params:      copiedParams,
 		StackFrames: err.StackFrames,
 	}
+}
+
+func merge(source, extra map[string]string) map[string]string {
+	merged := make(map[string]string)
+	for k, v := range source {
+		merged[k] = v
+	}
+	for k, v := range extra {
+		merged[k] = v
+	}
+	return merged
 }
 
 // Matches returns whether the string returned from error.Error() contains the given param string. This means you can

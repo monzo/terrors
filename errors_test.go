@@ -1,6 +1,7 @@
 package terrors
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -122,45 +123,81 @@ func TestWrap(t *testing.T) {
 	})
 }
 
-// func TestWrapErrorWithMessage(t *testing.T) {
-// 	err := fmt.Errorf("Look here, an error")
-// 	wrappedErr := Wrap(err, nil, "loading data").(*Error)
+func TestPropagateAddsMessage(t *testing.T) {
+	err := fmt.Errorf("an error")
+	terr := Propagate(err, "loading data", nil)
 
-// 	assert.Equal(t, "internal_service: loading data: Look here, an error", wrappedErr.Error())
-// 	assert.Equal(t, "loading data: Look here, an error", wrappedErr.Message)
-// }
+	assert.Equal(t, "internal_service: loading data: an error", terr.Error())
+	assert.Equal(t, "loading data: an error", terr.(*Error).Message)
+}
 
-// func TestWrapTerrorWithMessage(t *testing.T) {
-// 	err := BadRequest("name", "invalid name", nil)
-// 	wrappedErr := Wrap(err, nil, "loading data").(*Error)
+func TestPropagateWithoutMessage(t *testing.T) {
+	err := fmt.Errorf("an error")
+	terr := Propagate(err, "", nil).(*Error)
 
-// 	assert.Equal(t, "bad_request.name: loading data: invalid name", wrappedErr.Error())
-// 	assert.Equal(t, "loading data: invalid name", wrappedErr.Message)
-// }
+	assert.Equal(t, "internal_service: an error", terr.Error())
+	assert.Equal(t, "an error", terr.Message)
+}
 
-// func TestWrappedErrorCanBeUnwrapped(t *testing.T) {
-// 	err := &customError{"foo"}
-// 	wrappedErr := Wrap(err, nil)
+func TestPropagateAddsParams(t *testing.T) {
+	err := fmt.Errorf("an error")
+	terr := Propagate(err, "loading data", map[string]string{
+		"foo": "bar",
+	}).(*Error)
 
-// 	assert.True(t, errors.Is(wrappedErr, err))
+	assert.Equal(t, map[string]string{"foo": "bar"}, terr.Params)
+}
 
-// 	var unwrappedErr *customError
-// 	errors.As(wrappedErr, &unwrappedErr)
+func TestPropagateWithTerror(t *testing.T) {
+	err := BadRequest("name", "invalid name", nil)
+	terr := Propagate(err, "loading data", map[string]string{
+		"foo": "bar",
+	}).(*Error)
 
-// 	assert.Equal(t, err, unwrappedErr)
-// }
+	assert.Equal(t, "bad_request.name: loading data: invalid name", terr.Error())
+	assert.Equal(t, "loading data: invalid name", terr.Message)
+}
 
-// func TestWrappedTerrorCanBeUnwrapped(t *testing.T) {
-// 	err := &customError{"foo"}
-// 	doubleWrappedErr := Wrap(Wrap(err, nil), nil)
+func TestPropagatedErrorCanBeUnwrapped(t *testing.T) {
+	err := &customError{"foo"}
+	propagatedErr := Propagate(err, "loading data", nil)
 
-// 	assert.True(t, errors.Is(doubleWrappedErr, err))
+	assert.True(t, errors.Is(propagatedErr, err))
 
-// 	var unwrappedErr *customError
-// 	errors.As(doubleWrappedErr, &unwrappedErr)
+	var cause *customError
+	errors.As(propagatedErr, &cause)
 
-// 	assert.Equal(t, err, unwrappedErr)
-// }
+	assert.Equal(t, err, cause)
+}
+
+func TestWrappedErrorCannotBeUnwrapped(t *testing.T) {
+	// Unlike the `Propagate` methods, the old `Wrap` methods
+	// sould not expose the cause of an error when you attempt to
+	// unwrap them. This is to preserve behaviour in services that
+	// still use the `Wrap` methods.
+
+	err := &customError{"foo"}
+	wrappedErr := Wrap(err, nil)
+
+	assert.False(t, errors.Is(wrappedErr, err))
+
+	var cause *customError
+	errors.As(wrappedErr, &cause)
+
+	assert.Nil(t, cause)
+}
+
+func TestPropagatedTerrorCanBeUnwrapped(t *testing.T) {
+	err := &customError{"foo"}
+	doublePropagatedErr := Propagate(Propagate(err, "loading data", nil), "loading user", nil)
+
+	assert.True(t, errors.Is(doublePropagatedErr, err))
+
+	var cause *customError
+	errors.As(doublePropagatedErr, &cause)
+
+	assert.Equal(t, err, cause)
+}
 
 func getNilErr() error {
 	return Wrap(nil, nil)
