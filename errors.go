@@ -36,8 +36,7 @@ type Error struct {
 	// one of the `Propagate...` methods are used (the deprecated `Wrap` methods
 	// do not set the `cause` property to maintain backwards compatability).
 	// Because errors cannot be serialised as JSON this field is left unexported.
-	// This means that the cause of an error cannot be examined across service
-	// boundaries.
+	// This means that the cause of an error cannot be examined across service boundaries.
 	cause error
 }
 
