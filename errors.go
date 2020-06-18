@@ -129,17 +129,15 @@ func New(code string, message string, params map[string]string) *Error {
 	return errorFactory(nil, code, message, params)
 }
 
-// Wrap takes any error interface and wraps it into an Error.
+// Propagate takes any error interface and wraps it into an Error.
 // This is useful because an Error contains lots of useful goodies, like the stacktrace of the error.
-// NOTE: If `err` is already an `Error`, it will add the params passed in to the params of the Error
-func Wrap(err error, params map[string]string) error {
-	return WrapWithCode(err, params, ErrInternalService)
-}
-
+// NOTE: If `cause` is already an `Error`, it will merge the message and params with the underlying Error
 func Propagate(cause error, msg string, params map[string]string) error {
 	return PropagateWithCode(cause, ErrInternalService, msg, params)
 }
 
+// PropagateWithCode wraps an error with a custom error code.
+// NOTE: If `cause` is already an `Error`, it will merge the message and params with the underlying Error
 func PropagateWithCode(cause error, code string, msg string, params map[string]string) error {
 	if cause == nil {
 		return nil
@@ -169,8 +167,21 @@ func PropagateWithCode(cause error, code string, msg string, params map[string]s
 	}
 }
 
+// Wrap takes any error interface and wraps it into an Error.
+// This is useful because an Error contains lots of useful goodies, like the stacktrace of the error.
+// NOTE: If `err` is already an `Error`, it will add the params passed in to the params of the Error
+//
+// Deprecated: Wrap exists for historical compatability and should not be used.
+// To add context to an existing error, use `Propagate` instead.
+func Wrap(err error, params map[string]string) error {
+	return WrapWithCode(err, params, ErrInternalService)
+}
+
 // WrapWithCode wraps an error with a custom error code. If `err` is already
 // an `Error`, it will add the params passed in to the params of the error
+//
+// Deprecated: WrapWithCode exists for historical compatability and should not be used.
+// To add context to an existing error with a code, use `PropagateWithCode` instead.
 func WrapWithCode(err error, params map[string]string, code string) error {
 	if err == nil {
 		return nil
