@@ -52,28 +52,6 @@ const (
 // Error returns a string message of the error. It is a concatenation of Code and Message params
 // This means the Error implements the error interface
 func (p *Error) Error() string {
-	// var next error = p
-	// output := strings.Builder{}
-	// first := true
-	// for next != nil {
-	// 	if !first {
-	// 		output.WriteString(" ")
-	// 	}
-	// 	switch typed := next.(type) {
-	// 	case *Error:
-	// 		output.WriteString(typed.errString())
-	// 		next = typed.cause
-	// 	case error:
-	// 		output.WriteString(typed.Error())
-	// 		next = nil
-	// 	}
-	// 	first = false
-	// }
-	// return output.String()
-	return p.errString()
-}
-
-func (p *Error) errString() string {
 	if p == nil {
 		return ""
 	}
