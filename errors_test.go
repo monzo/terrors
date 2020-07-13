@@ -250,3 +250,98 @@ func TestLogMetadataStack(t *testing.T) {
 		}, terr.LogMetadata())
 	})
 }
+
+func TestPropagateError(t *testing.T) {
+	newErr := Propagate(assert.AnError, "added context", map[string]string{
+		"meta": "data",
+	})
+	terr := newErr.(*Error)
+	assert.Equal(t, "added context: assert.AnError general error for testing", terr.Message)
+	assert.Equal(t, "internal_service", terr.Code)
+	assert.Equal(t, "internal_service: added context: assert.AnError general error for testing", terr.Error())
+	assert.Equal(t, "data", terr.Params["meta"])
+	assert.Equal(t, assert.AnError, terr.cause)
+}
+
+func TestPropagateTError(t *testing.T) {
+	base := NotFound("foo", "failed to find foo", map[string]string{
+		"base": "meta",
+	})
+	newErr := Propagate(base, "added context", map[string]string{
+		"new": "meta",
+	})
+	terr := newErr.(*Error)
+	assert.Equal(t, "added context: failed to find foo", terr.Message)
+	assert.Equal(t, "not_found.foo", terr.Code)
+	assert.Equal(t, "not_found.foo: added context: failed to find foo", terr.Error())
+	assert.Equal(t, base, terr.cause)
+}
+
+func TestIsError(t *testing.T) {
+	cases := []struct {
+		desc          string
+		errCreator    func() error
+		code          string
+		expectedMatch bool
+	}{
+		{
+			desc: "non-terror",
+			errCreator: func() error {
+				return assert.AnError
+			},
+			code:          ErrInternalService,
+			expectedMatch: false,
+		},
+		{
+			desc: "simple wrapped go error",
+			errCreator: func() error {
+				return Propagate(assert.AnError, "added context", map[string]string{
+					"meta": "data",
+				})
+			},
+			code:          ErrInternalService,
+			expectedMatch: true,
+		},
+		{
+			desc: "non-wrapped terror",
+			errCreator: func() error {
+				return NotFound("foo", "bar", nil)
+			},
+			code:          ErrNotFound,
+			expectedMatch: true,
+		},
+		{
+			desc: "single-wrapped terror propagated",
+			errCreator: func() error {
+				base := NotFound("foo", "bar", nil)
+				return Propagate(base, "added context", nil)
+			},
+			code:          ErrNotFound,
+			expectedMatch: true,
+		},
+		{
+			desc: "created FromError",
+			errCreator: func() error {
+				base := NotFound("foo", "bar", nil)
+				return FromError(base, "added context", nil)
+			},
+			code:          ErrNotFound,
+			expectedMatch: true,
+		},
+		{
+			desc: "created FromError wrong code",
+			errCreator: func() error {
+				base := NotFound("foo", "bar", nil)
+				return FromError(base, "added context", nil)
+			},
+			code:          ErrForbidden,
+			expectedMatch: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			assert.Equal(t, tc.expectedMatch, Is(tc.errCreator(), tc.code))
+		})
+	}
+}
