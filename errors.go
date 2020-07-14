@@ -32,6 +32,12 @@ type Error struct {
 	Params      map[string]string `json:"params"`
 	StackFrames stack.Stack       `json:"stack"`
 
+	// Cause is the initial cause of this error, and will be populated
+	// when using the Propagate function. This is intentionally not exported
+	// so that we don't serialize causes and send them across process boundaries.
+	// The cause refers to the cause of the error within a given process, and you
+	// should not expect it to contain information about terrors from other downstream
+	// processes.
 	cause error
 }
 
@@ -49,9 +55,34 @@ const (
 	ErrUnknown            = "unknown"
 )
 
-// Error returns a string message of the error. It is a concatenation of Code and Message params
-// This means the Error implements the error interface
+// Error returns a string message of the error.
+// It will contain the code and error message. If there is a causal chain, the
+// message from each error in the chain will be added to the output.
 func (p *Error) Error() string {
+	if p.cause == nil {
+		// Not sure if the empty code/message cases actually happen, but to be safe, defer to
+		// the 'old' error message if there is no cause present (i.e. we're not using
+		// new wrapping functionality)
+		return p.legacyErrString()
+	}
+	var next error = p
+	output := strings.Builder{}
+	output.WriteString(p.Code)
+	for next != nil {
+		output.WriteString(": ")
+		switch typed := next.(type) {
+		case *Error:
+			output.WriteString(typed.Message)
+			next = typed.cause
+		case error:
+			output.WriteString(typed.Error())
+			next = nil
+		}
+	}
+	return output.String()
+}
+
+func (p *Error) legacyErrString() string {
 	if p == nil {
 		return ""
 	}
@@ -187,34 +218,23 @@ func PrefixMatches(err error, prefixParts ...string) bool {
 }
 
 // Propagate adds context to an existing error.
-// If the error given is not already a terror, a new terror is created,
-// then propagate is called with that error.
+// If the error given is not already a terror, a new terror is created.
 func Propagate(err error, context string, params map[string]string) error {
 	switch err := err.(type) {
 	case *Error:
 		terr := addParams(err, params)
-		terr.Message = fmt.Sprintf("%s: %s", context, err.Message)
+		terr.Message = context
 		terr.cause = err
 		return terr
 	default:
-		msg := fmt.Sprintf("%s: %s", context, err.Error())
-		return FromError(err, msg, params)
+		return FromDownstream(err, context, params)
 	}
 }
 
-// Transmute changes the code of a given terror. It is rare that this is needed.
-// You might instead want to use Propagate or FromError to wrap the original
-// error and add context.
-func Transmute(err *Error, code string) *Error {
-	// TODO: Copy so original error is not modified
-	err.Code = code
-	return err
-}
-
-// FromError creates a new Terror from an existing error.
+// FromDownstream creates a new Terror from an existing error.
 // The new error will always have the code `ErrInternalService`. The original
 // error is attached as the `cause`, and can be tested with the `Is` function.
-func FromError(err error, message string, params map[string]string) *Error {
+func FromDownstream(err error, message string, params map[string]string) *Error {
 	newErr := errorFactory(ErrInternalService, message, params)
 	newErr.cause = err
 	return newErr
@@ -223,17 +243,20 @@ func FromError(err error, message string, params map[string]string) *Error {
 // Is checks whether an error is a given code. Similarly to `errors.Is`,
 // this unwinds the error stack and checks each underlying error for the code.
 // If any match, this returns true.
-func Is(err error, code string) bool {
+// We prefer this over using a method receiver on the terrors Error, as the function
+// signature requires an error to test against, and checking against terrors would
+// requite creating a new terror with the specific code.
+func Is(err error, code ...string) bool {
 	switch err := err.(type) {
 	case *Error:
-		if err.PrefixMatches(code) {
+		if err.PrefixMatches(code...) {
 			return true
 		}
 		next := err.Unwrap()
 		if next == nil {
 			return false
 		}
-		return Is(next, code)
+		return Is(next, code...)
 	default:
 		return false
 	}

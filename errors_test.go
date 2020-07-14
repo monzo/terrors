@@ -256,14 +256,15 @@ func TestPropagateError(t *testing.T) {
 		"meta": "data",
 	})
 	terr := newErr.(*Error)
-	assert.Equal(t, "added context: assert.AnError general error for testing", terr.Message)
 	assert.Equal(t, "internal_service", terr.Code)
+	assert.Equal(t, "added context", terr.Message)
+
 	assert.Equal(t, "internal_service: added context: assert.AnError general error for testing", terr.Error())
 	assert.Equal(t, "data", terr.Params["meta"])
 	assert.Equal(t, assert.AnError, terr.cause)
 }
 
-func TestPropagateTError(t *testing.T) {
+func TestPropagateTerror(t *testing.T) {
 	base := NotFound("foo", "failed to find foo", map[string]string{
 		"base": "meta",
 	})
@@ -271,8 +272,9 @@ func TestPropagateTError(t *testing.T) {
 		"new": "meta",
 	})
 	terr := newErr.(*Error)
-	assert.Equal(t, "added context: failed to find foo", terr.Message)
 	assert.Equal(t, "not_found.foo", terr.Code)
+	assert.Equal(t, "added context", terr.Message)
+
 	assert.Equal(t, "not_found.foo: added context: failed to find foo", terr.Error())
 	assert.Equal(t, base, terr.cause)
 }
@@ -281,7 +283,7 @@ func TestIsError(t *testing.T) {
 	cases := []struct {
 		desc          string
 		errCreator    func() error
-		code          string
+		code          []string
 		expectedMatch bool
 	}{
 		{
@@ -289,7 +291,7 @@ func TestIsError(t *testing.T) {
 			errCreator: func() error {
 				return assert.AnError
 			},
-			code:          ErrInternalService,
+			code:          []string{ErrInternalService},
 			expectedMatch: false,
 		},
 		{
@@ -299,7 +301,7 @@ func TestIsError(t *testing.T) {
 					"meta": "data",
 				})
 			},
-			code:          ErrInternalService,
+			code:          []string{ErrInternalService},
 			expectedMatch: true,
 		},
 		{
@@ -307,7 +309,7 @@ func TestIsError(t *testing.T) {
 			errCreator: func() error {
 				return NotFound("foo", "bar", nil)
 			},
-			code:          ErrNotFound,
+			code:          []string{ErrNotFound},
 			expectedMatch: true,
 		},
 		{
@@ -316,32 +318,60 @@ func TestIsError(t *testing.T) {
 				base := NotFound("foo", "bar", nil)
 				return Propagate(base, "added context", nil)
 			},
-			code:          ErrNotFound,
+			code:          []string{ErrNotFound},
 			expectedMatch: true,
 		},
 		{
-			desc: "created FromError",
+			desc: "multi-wrapped terror propagated",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return FromError(base, "added context", nil)
+				next := Propagate(base, "added context", nil)
+				return Propagate(next, "more context", nil)
 			},
-			code:          ErrNotFound,
+			code:          []string{ErrNotFound},
 			expectedMatch: true,
 		},
 		{
-			desc: "created FromError wrong code",
+			desc: "multiple code parts match",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return FromError(base, "added context", nil)
+				return Propagate(base, "added context", nil)
 			},
-			code:          ErrForbidden,
+			code:          []string{ErrNotFound, "foo"},
+			expectedMatch: true,
+		},
+		{
+			desc: "multiple code parts mismatch",
+			errCreator: func() error {
+				base := NotFound("foo", "bar", nil)
+				return Propagate(base, "added context", nil)
+			},
+			code:          []string{ErrNotFound, "notfoo"},
+			expectedMatch: false,
+		},
+		{
+			desc: "created FromDownstream",
+			errCreator: func() error {
+				base := NotFound("foo", "bar", nil)
+				return FromDownstream(base, "added context", nil)
+			},
+			code:          []string{ErrNotFound},
+			expectedMatch: true,
+		},
+		{
+			desc: "created FromDownstream wrong code",
+			errCreator: func() error {
+				base := NotFound("foo", "bar", nil)
+				return FromDownstream(base, "added context", nil)
+			},
+			code:          []string{ErrForbidden},
 			expectedMatch: false,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
-			assert.Equal(t, tc.expectedMatch, Is(tc.errCreator(), tc.code))
+			assert.Equal(t, tc.expectedMatch, Is(tc.errCreator(), tc.code...))
 		})
 	}
 }
