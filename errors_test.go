@@ -375,3 +375,9 @@ func TestIsError(t *testing.T) {
 		})
 	}
 }
+
+func TestFromDownstreamStack(t *testing.T) {
+	err := FromDownstream(assert.AnError, "test", nil)
+	// Ensure that the first callsite is this method rather than the terrors internals
+	assert.Contains(t, err.StackFrames[0].Method, "TestFromDownstreamStack")
+}
