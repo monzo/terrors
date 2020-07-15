@@ -95,6 +95,8 @@ func (p *Error) legacyErrString() string {
 	return fmt.Sprintf("%s: %s", p.Code, p.Message)
 }
 
+// Unwrap retruns the cause of the error. It may be nil.
+// WARNING: This function is considered experimental, and may be changed without notice.
 func (p *Error) Unwrap() error {
 	return p.cause
 }
@@ -161,6 +163,7 @@ func New(code string, message string, params map[string]string) *Error {
 // NewInternalWithCause creates a new Terror from an existing error.
 // The new error will always have the code `ErrInternalService`. The original
 // error is attached as the `cause`, and can be tested with the `Is` function.
+// WARNING: This function is considered experimental, and may be changed without notice.
 func NewInternalWithCause(err error, message string, params map[string]string) *Error {
 	newErr := errorFactory(ErrInternalService, message, params)
 	newErr.cause = err
@@ -228,6 +231,7 @@ func PrefixMatches(err error, prefixParts ...string) bool {
 
 // Propagate adds context to an existing error.
 // If the error given is not already a terror, a new terror is created.
+// WARNING: This function is considered experimental, and may be changed without notice.
 func Propagate(err error, context string, params map[string]string) error {
 	switch err := err.(type) {
 	case *Error:
@@ -246,6 +250,7 @@ func Propagate(err error, context string, params map[string]string) error {
 // We prefer this over using a method receiver on the terrors Error, as the function
 // signature requires an error to test against, and checking against terrors would
 // requite creating a new terror with the specific code.
+// WARNING: This function is considered experimental, and may be changed without notice.
 func Is(err error, code ...string) bool {
 	switch err := err.(type) {
 	case *Error:
