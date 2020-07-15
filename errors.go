@@ -158,6 +158,15 @@ func New(code string, message string, params map[string]string) *Error {
 	return errorFactory(code, message, params)
 }
 
+// NewInternalWithCause creates a new Terror from an existing error.
+// The new error will always have the code `ErrInternalService`. The original
+// error is attached as the `cause`, and can be tested with the `Is` function.
+func NewInternalWithCause(err error, message string, params map[string]string) *Error {
+	newErr := errorFactory(ErrInternalService, message, params)
+	newErr.cause = err
+	return newErr
+}
+
 // addParams returns a new error with new params merged into the original error's
 func addParams(err *Error, params map[string]string) *Error {
 	copiedParams := make(map[string]string, len(err.Params)+len(params))
@@ -227,17 +236,8 @@ func Propagate(err error, context string, params map[string]string) error {
 		terr.cause = err
 		return terr
 	default:
-		return FromDownstream(err, context, params)
+		return NewInternalWithCause(err, context, params)
 	}
-}
-
-// FromDownstream creates a new Terror from an existing error.
-// The new error will always have the code `ErrInternalService`. The original
-// error is attached as the `cause`, and can be tested with the `Is` function.
-func FromDownstream(err error, message string, params map[string]string) *Error {
-	newErr := errorFactory(ErrInternalService, message, params)
-	newErr.cause = err
-	return newErr
 }
 
 // Is checks whether an error is a given code. Similarly to `errors.Is`,

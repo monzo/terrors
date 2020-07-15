@@ -350,19 +350,19 @@ func TestIsError(t *testing.T) {
 			expectedMatch: false,
 		},
 		{
-			desc: "created FromDownstream",
+			desc: "created NewInternalWithCause",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return FromDownstream(base, "added context", nil)
+				return NewInternalWithCause(base, "added context", nil)
 			},
 			code:          []string{ErrNotFound},
 			expectedMatch: true,
 		},
 		{
-			desc: "created FromDownstream wrong code",
+			desc: "created NewInternalWithCause wrong code",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return FromDownstream(base, "added context", nil)
+				return NewInternalWithCause(base, "added context", nil)
 			},
 			code:          []string{ErrForbidden},
 			expectedMatch: false,
@@ -376,8 +376,8 @@ func TestIsError(t *testing.T) {
 	}
 }
 
-func TestFromDownstreamStack(t *testing.T) {
-	err := FromDownstream(assert.AnError, "test", nil)
+func TestNewInternalWithCauseStack(t *testing.T) {
+	err := NewInternalWithCause(assert.AnError, "test", nil)
 	// Ensure that the first callsite is this method rather than the terrors internals
-	assert.Contains(t, err.StackFrames[0].Method, "TestFromDownstreamStack")
+	assert.Contains(t, err.StackFrames[0].Method, "TestNewInternalWithCauseStack")
 }
