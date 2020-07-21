@@ -274,6 +274,7 @@ func TestPropagateTerror(t *testing.T) {
 	terr := newErr.(*Error)
 	assert.Equal(t, "not_found.foo", terr.Code)
 	assert.Equal(t, "added context", terr.Message)
+	assert.Equal(t, "terrors.TestPropagateTerror", terr.StackFrames[0].Method)
 
 	assert.Equal(t, "not_found.foo: added context: failed to find foo", terr.Error())
 	assert.Equal(t, base, terr.cause)
@@ -353,7 +354,7 @@ func TestIsError(t *testing.T) {
 			desc: "created NewInternalWithCause",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return NewInternalWithCause(base, "added context", nil)
+				return NewInternalWithCause(base, "added context", nil, "")
 			},
 			code:          []string{ErrNotFound},
 			expectedMatch: true,
@@ -362,9 +363,27 @@ func TestIsError(t *testing.T) {
 			desc: "created NewInternalWithCause wrong code",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return NewInternalWithCause(base, "added context", nil)
+				return NewInternalWithCause(base, "added context", nil, "")
 			},
 			code:          []string{ErrForbidden},
+			expectedMatch: false,
+		},
+		{
+			desc: "created NewInternalWithCause with subcode",
+			errCreator: func() error {
+				base := NotFound("foo", "bar", nil)
+				return NewInternalWithCause(base, "added context", nil, "downstream")
+			},
+			code:          []string{ErrInternalService, "downstream"},
+			expectedMatch: true,
+		},
+		{
+			desc: "created NewInternalWithCause with subcode mismatch",
+			errCreator: func() error {
+				base := NotFound("foo", "bar", nil)
+				return NewInternalWithCause(base, "added context", nil, "downstream")
+			},
+			code:          []string{ErrInternalService, "mismatch"},
 			expectedMatch: false,
 		},
 	}
@@ -377,7 +396,7 @@ func TestIsError(t *testing.T) {
 }
 
 func TestNewInternalWithCauseStack(t *testing.T) {
-	err := NewInternalWithCause(assert.AnError, "test", nil)
+	err := NewInternalWithCause(assert.AnError, "test", nil, "")
 	// Ensure that the first callsite is this method rather than the terrors internals
 	assert.Contains(t, err.StackFrames[0].Method, "TestNewInternalWithCauseStack")
 }
