@@ -164,8 +164,8 @@ func New(code string, message string, params map[string]string) *Error {
 // The new error will always have the code `ErrInternalService`. The original
 // error is attached as the `cause`, and can be tested with the `Is` function.
 // WARNING: This function is considered experimental, and may be changed without notice.
-func NewInternalWithCause(err error, message string, params map[string]string) *Error {
-	newErr := errorFactory(ErrInternalService, message, params)
+func NewInternalWithCause(err error, message string, params map[string]string, subCode string) *Error {
+	newErr := errorFactory(errCode(ErrInternalService, subCode), message, params)
 	newErr.cause = err
 	return newErr
 }
@@ -231,6 +231,9 @@ func PrefixMatches(err error, prefixParts ...string) bool {
 
 // Propagate adds context to an existing error.
 // If the error given is not already a terror, a new terror is created.
+// A new stack trace is taken with each call to propagate. This is most likely only useful
+// for the first call, so callers should ensure they examine the causal chain of errors to
+// select the stack trace with the most details.
 // WARNING: This function is considered experimental, and may be changed without notice.
 func Propagate(err error, context string, params map[string]string) error {
 	switch err := err.(type) {
@@ -238,9 +241,10 @@ func Propagate(err error, context string, params map[string]string) error {
 		terr := addParams(err, params)
 		terr.Message = context
 		terr.cause = err
+		terr.StackFrames = stack.BuildStack(2) // 2 skips 'BuildStack' and 'Propagate'
 		return terr
 	default:
-		return NewInternalWithCause(err, context, params)
+		return NewInternalWithCause(err, context, params, "")
 	}
 }
 
