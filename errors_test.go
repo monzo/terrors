@@ -251,8 +251,8 @@ func TestLogMetadataStack(t *testing.T) {
 	})
 }
 
-func TestPropagateError(t *testing.T) {
-	newErr := Propagate(assert.AnError, "added context", map[string]string{
+func TestAugmentError(t *testing.T) {
+	newErr := Augment(assert.AnError, "added context", map[string]string{
 		"meta": "data",
 	})
 	terr := newErr.(*Error)
@@ -264,17 +264,17 @@ func TestPropagateError(t *testing.T) {
 	assert.Equal(t, assert.AnError, terr.cause)
 }
 
-func TestPropagateTerror(t *testing.T) {
+func TestAugmentTerror(t *testing.T) {
 	base := NotFound("foo", "failed to find foo", map[string]string{
 		"base": "meta",
 	})
-	newErr := Propagate(base, "added context", map[string]string{
+	newErr := Augment(base, "added context", map[string]string{
 		"new": "meta",
 	})
 	terr := newErr.(*Error)
 	assert.Equal(t, "not_found.foo", terr.Code)
 	assert.Equal(t, "added context", terr.Message)
-	assert.Equal(t, "terrors.TestPropagateTerror", terr.StackFrames[0].Method)
+	assert.Empty(t, terr.StackFrames)
 
 	assert.Equal(t, "not_found.foo: added context: failed to find foo", terr.Error())
 	assert.Equal(t, base, terr.cause)
@@ -298,7 +298,7 @@ func TestIsError(t *testing.T) {
 		{
 			desc: "simple wrapped go error",
 			errCreator: func() error {
-				return Propagate(assert.AnError, "added context", map[string]string{
+				return Augment(assert.AnError, "added context", map[string]string{
 					"meta": "data",
 				})
 			},
@@ -314,20 +314,20 @@ func TestIsError(t *testing.T) {
 			expectedMatch: true,
 		},
 		{
-			desc: "single-wrapped terror propagated",
+			desc: "single-wrapped terror Augmentd",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return Propagate(base, "added context", nil)
+				return Augment(base, "added context", nil)
 			},
 			code:          []string{ErrNotFound},
 			expectedMatch: true,
 		},
 		{
-			desc: "multi-wrapped terror propagated",
+			desc: "multi-wrapped terror Augmentd",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				next := Propagate(base, "added context", nil)
-				return Propagate(next, "more context", nil)
+				next := Augment(base, "added context", nil)
+				return Augment(next, "more context", nil)
 			},
 			code:          []string{ErrNotFound},
 			expectedMatch: true,
@@ -336,7 +336,7 @@ func TestIsError(t *testing.T) {
 			desc: "multiple code parts match",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return Propagate(base, "added context", nil)
+				return Augment(base, "added context", nil)
 			},
 			code:          []string{ErrNotFound, "foo"},
 			expectedMatch: true,
@@ -345,7 +345,7 @@ func TestIsError(t *testing.T) {
 			desc: "multiple code parts mismatch",
 			errCreator: func() error {
 				base := NotFound("foo", "bar", nil)
-				return Propagate(base, "added context", nil)
+				return Augment(base, "added context", nil)
 			},
 			code:          []string{ErrNotFound, "notfoo"},
 			expectedMatch: false,
@@ -399,4 +399,21 @@ func TestNewInternalWithCauseStack(t *testing.T) {
 	err := NewInternalWithCause(assert.AnError, "test", nil, "")
 	// Ensure that the first callsite is this method rather than the terrors internals
 	assert.Contains(t, err.StackFrames[0].Method, "TestNewInternalWithCauseStack")
+}
+
+func TestPropagate(t *testing.T) {
+	t.Run("terror", func(t *testing.T) {
+		terr := &Error{Code: "foo"}
+		out := Propagate(terr)
+		assert.Equal(t, terr, out)
+	})
+	t.Run("non-terror", func(t *testing.T) {
+		out := Propagate(assert.AnError)
+		assert.IsType(t, &Error{}, out)
+		terr := out.(*Error)
+		assert.Equal(t, ErrInternalService, terr.Code)
+		assert.Equal(t, assert.AnError, terr.cause)
+		assert.Equal(t, assert.AnError.Error(), terr.Message)
+		assert.Greater(t, len(terr.StackFrames), 0)
+	})
 }
