@@ -101,6 +101,16 @@ func (p *Error) Unwrap() error {
 	return p.cause
 }
 
+// StackTrace returns a slice of program counters taken from the stack frames.
+// This adapts the terrors package to allow stacks to be reported to Sentry correctly.
+func (p *Error) StackTrace() []uintptr {
+	out := make([]uintptr, len(p.StackFrames))
+	for i := 0; i < len(p.StackFrames); i++ {
+		out[i] = p.StackFrames[i].PC
+	}
+	return out
+}
+
 // StackString formats the stack as a beautiful string with newlines
 func (p *Error) StackString() string {
 	stackStr := ""
