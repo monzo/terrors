@@ -417,3 +417,17 @@ func TestPropagate(t *testing.T) {
 		assert.Greater(t, len(terr.StackFrames), 0)
 	})
 }
+
+func TestStackTrace(t *testing.T) {
+	t.Run("nil stack", func(t *testing.T) {
+		terr := &Error{}
+		res := terr.StackTrace()
+		assert.Len(t, res, 0)
+	})
+	t.Run("non-nil stack", func(t *testing.T) {
+		terr := InternalService("foo", "bar", nil)
+		res := terr.StackTrace()
+		// Don't assert on content because it changes
+		assert.NotEmpty(t, res)
+	})
+}
