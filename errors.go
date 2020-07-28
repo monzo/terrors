@@ -19,7 +19,6 @@ package terrors
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/monzo/terrors/stack"
@@ -129,39 +128,7 @@ func (p *Error) VerboseString() string {
 // the error params will automatically be merged with the slog metadata.
 // Additionally we put stack data in here for slog use.
 func (p *Error) LogMetadata() map[string]string {
-	if len(p.StackFrames) == 0 {
-		return p.Params
-	}
-
-	// Attempt to find a frame that isn't within the terrors library.
-	var frames []*stack.Frame
-	for _, f := range p.StackFrames {
-		if !strings.HasPrefix(f.Method, "terrors.") {
-			frames = append(frames, f)
-		}
-	}
-	if len(frames) == 0 {
-		return p.Params
-	}
-
-	stackPCs := make([]string, len(frames))
-	for i, f := range frames {
-		stackPCs[i] = strconv.FormatUint(uint64(f.PC), 10)
-	}
-
-	logParams := map[string]string{
-		"terrors_file":     frames[0].Filename,
-		"terrors_function": frames[0].Method,
-		"terrors_line":     strconv.Itoa(frames[0].Line),
-		"terrors_pc":       strconv.FormatUint(uint64(frames[0].PC), 10),
-		"terrors_stack":    strings.Join(stackPCs, ","),
-	}
-
-	for key, value := range p.Params {
-		logParams[key] = value
-	}
-
-	return logParams
+	return p.Params
 }
 
 // New creates a new error for you. Use this if you want to pass along a custom error code.

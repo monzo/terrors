@@ -15,7 +15,6 @@ func TestLogParams(t *testing.T) {
 	err := New("service.foo", "Some message", map[string]string{"public": "value"})
 
 	assert.Equal(t, "value", err.LogMetadata()["public"])
-	assert.Equal(t, "testing.tRunner", err.LogMetadata()["terrors_function"])
 }
 
 func TestErrorConstructors(t *testing.T) {
@@ -199,56 +198,6 @@ func ExampleMatches() {
 	err := NotFound("handler_missing", "Handler not found", nil)
 	fmt.Println(Matches(err, "not_found.handler_missing"))
 	// Output: true
-}
-
-func TestLogMetadataStack(t *testing.T) {
-	t.Run("No stack", func(t *testing.T) {
-		terr := BadRequest("beep", "boop", nil)
-		terr.StackFrames = nil
-		assert.Equal(t, map[string]string{}, terr.LogMetadata())
-	})
-	t.Run("Inside terrors", func(t *testing.T) {
-		terr := BadRequest("beep", "boop", nil)
-		terr.StackFrames = stack.Stack{
-			&stack.Frame{
-				Method:   "terrors.SomeFunc",
-				Filename: "/src/github.com/monzo/terrors/errors.go",
-				Line:     50,
-				PC:       69,
-			},
-		}
-		assert.Equal(t, map[string]string{}, terr.LogMetadata())
-	})
-	t.Run("Outside", func(t *testing.T) {
-		terr := BadRequest("beep", "boop", nil)
-		terr.StackFrames = stack.Stack{
-			&stack.Frame{
-				Method:   "terrors.SomeFunc",
-				Filename: "/src/github.com/monzo/terrors/errors.go",
-				Line:     50,
-				PC:       69,
-			},
-			&stack.Frame{
-				Method:   "typhon.SomeFunc",
-				Filename: "/src/github.com/monzo/typhon/blah.go",
-				Line:     43,
-				PC:       420,
-			},
-			&stack.Frame{
-				Method:   "typhon.SomeOtherFunc",
-				Filename: "/src/github.com/monzo/typhon/blah.go",
-				Line:     39,
-				PC:       573,
-			},
-		}
-		assert.Equal(t, map[string]string{
-			"terrors_file":     "/src/github.com/monzo/typhon/blah.go",
-			"terrors_function": "typhon.SomeFunc",
-			"terrors_line":     "43",
-			"terrors_pc":       "420",
-			"terrors_stack":    "420,573",
-		}, terr.LogMetadata())
-	})
 }
 
 func TestAugmentError(t *testing.T) {
