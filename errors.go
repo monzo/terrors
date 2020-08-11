@@ -140,6 +140,8 @@ func New(code string, message string, params map[string]string) *Error {
 // NewInternalWithCause creates a new Terror from an existing error.
 // The new error will always have the code `ErrInternalService`. The original
 // error is attached as the `cause`, and can be tested with the `Is` function.
+// You probably want to use the `Augment` func instead;
+// only use this if you need to set a subcode on an error.
 // WARNING: This function is considered experimental, and may be changed without notice.
 func NewInternalWithCause(err error, message string, params map[string]string, subCode string) *Error {
 	newErr := errorFactory(errCode(ErrInternalService, subCode), message, params)
