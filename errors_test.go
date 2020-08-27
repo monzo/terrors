@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/monzo/terrors/stack"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/monzo/terrors/stack"
 )
 
 type newError func(code, message string, params map[string]string) *Error
@@ -229,6 +230,12 @@ func TestAugmentTerror(t *testing.T) {
 	assert.Equal(t, base, terr.cause)
 }
 
+func TestAugmentNil(t *testing.T) {
+	assert.Nil(t, Augment(nil, "added context", map[string]string{
+		"new": "meta",
+	}))
+}
+
 func TestIsError(t *testing.T) {
 	cases := []struct {
 		desc          string
@@ -364,6 +371,9 @@ func TestPropagate(t *testing.T) {
 		assert.Equal(t, assert.AnError, terr.cause)
 		assert.Equal(t, assert.AnError.Error(), terr.Message)
 		assert.Greater(t, len(terr.StackFrames), 0)
+	})
+	t.Run("nil", func(t *testing.T) {
+		assert.Nil(t, Propagate(nil))
 	})
 }
 
