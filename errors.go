@@ -212,6 +212,9 @@ func PrefixMatches(err error, prefixParts ...string) bool {
 // If the error given is not already a terror, a new terror is created.
 // WARNING: This function is considered experimental, and may be changed without notice.
 func Augment(err error, context string, params map[string]string) error {
+	if err == nil {
+		return nil
+	}
 	switch err := err.(type) {
 	case *Error:
 		withMergedParams := addParams(err, params)
@@ -235,6 +238,9 @@ func Augment(err error, context string, params map[string]string) error {
 // chain functionality.
 // WARNING: This function is considered experimental, and may be changed without notice.
 func Propagate(err error) error {
+	if err == nil {
+		return nil
+	}
 	switch err := err.(type) {
 	case *Error:
 		return err
