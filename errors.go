@@ -30,7 +30,9 @@ type Error struct {
 	Message     string            `json:"message"`
 	Params      map[string]string `json:"params"`
 	StackFrames stack.Stack       `json:"stack"`
-	IsRetryable *bool             `json:"is_retryable"`
+
+	// exported for serialization, but you should use Retryable to read the value.
+	IsRetryable *bool `json:"is_retryable"`
 
 	// Cause is the initial cause of this error, and will be populated
 	// when using the Propagate function. This is intentionally not exported
@@ -59,19 +61,6 @@ var retryableCodes = []string{
 	ErrInternalService,
 	ErrTimeout,
 	ErrUnknown,
-}
-
-// Retryable determines whether the error was caused by an action which can be retried.
-func (p *Error) Retryable() bool {
-	if p.IsRetryable != nil {
-		return *p.IsRetryable
-	}
-	for _, c := range retryableCodes {
-		if PrefixMatches(p, c) {
-			return true
-		}
-	}
-	return false
 }
 
 // Error returns a string message of the error.
@@ -142,6 +131,19 @@ func (p *Error) StackString() string {
 // VerboseString returns the error message, stack trace and params
 func (p *Error) VerboseString() string {
 	return fmt.Sprintf("%s\nParams: %+v\n%s", p.Error(), p.Params, p.StackString())
+}
+
+// Retryable determines whether the error was caused by an action which can be retried.
+func (p *Error) Retryable() bool {
+	if p.IsRetryable != nil {
+		return *p.IsRetryable
+	}
+	for _, c := range retryableCodes {
+		if PrefixMatches(p, c) {
+			return true
+		}
+	}
+	return false
 }
 
 // LogMetadata implements the logMetadataProvider interface in the slog library which means that

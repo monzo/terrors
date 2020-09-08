@@ -390,3 +390,48 @@ func TestStackTrace(t *testing.T) {
 		assert.NotEmpty(t, res)
 	})
 }
+
+func TestRetryable(t *testing.T) {
+	cases := []struct {
+		desc     string
+		terr     Error
+		expected bool
+	}{
+		{
+			desc: "by value, positive",
+			terr: Error{
+				IsRetryable: &retryable,
+			},
+			expected: true,
+		},
+		{
+			desc: "by value, negative",
+			terr: Error{
+				IsRetryable: &notRetryable,
+			},
+			expected: false,
+		},
+		{
+			desc: "by code, positive",
+			terr: Error{
+				Code:        ErrInternalService,
+				IsRetryable: nil,
+			},
+			expected: true,
+		},
+		{
+			desc: "by code, negative",
+			terr: Error{
+				Code:        ErrNotFound,
+				IsRetryable: nil,
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run("By code - positive", func(t *testing.T) {
+			assert.Equal(t, tc.expected, tc.terr.Retryable())
+		})
+	}
+}

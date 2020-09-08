@@ -1,5 +1,6 @@
 syntax = "proto3";
 option go_package = "terrorsproto";
+import "google/protobuf/wrappers.proto";
 
 message StackFrame {
 	string filename = 1;
@@ -12,9 +13,5 @@ message Error {
 	string message = 2;
 	map<string, string> params = 3;
 	repeated StackFrame stack = 4;
-	OptionalBool retryable = 5;
-}
-
-message OptionalBool {
-	bool value = 1;
+	google.protobuf.BoolValue retryable = 5;
 }
