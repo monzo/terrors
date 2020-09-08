@@ -30,6 +30,7 @@ type Error struct {
 	Message     string            `json:"message"`
 	Params      map[string]string `json:"params"`
 	StackFrames stack.Stack       `json:"stack"`
+	IsRetryable *bool             `json:"is_retryable"`
 
 	// Cause is the initial cause of this error, and will be populated
 	// when using the Propagate function. This is intentionally not exported
@@ -53,6 +54,25 @@ const (
 	ErrUnauthorized       = "unauthorized"
 	ErrUnknown            = "unknown"
 )
+
+var retryableCodes = []string{
+	ErrInternalService,
+	ErrTimeout,
+	ErrUnknown,
+}
+
+// Retryable determines whether the error was caused by an action which can be retried.
+func (p *Error) Retryable() bool {
+	if p.IsRetryable != nil {
+		return *p.IsRetryable
+	}
+	for _, c := range retryableCodes {
+		if PrefixMatches(p, c) {
+			return true
+		}
+	}
+	return false
+}
 
 // Error returns a string message of the error.
 // It will contain the code and error message. If there is a causal chain, the
@@ -146,6 +166,17 @@ func New(code string, message string, params map[string]string) *Error {
 func NewInternalWithCause(err error, message string, params map[string]string, subCode string) *Error {
 	newErr := errorFactory(errCode(ErrInternalService, subCode), message, params)
 	newErr.cause = err
+
+	// If the causal error is a terror with retryability set, inherit that value.
+	// Otherwise, we'll default to retryable based on the ErrInternalService code above.
+	// This allows us to have an non-retryable InternalService error if the cause was not-retryable,
+	// which allows the retryability of errors to propagate through the system by default, even
+	// if an error handling case is missed in an upstream.
+	terr, ok := err.(*Error)
+	if ok && terr.IsRetryable != nil {
+		newErr.IsRetryable = terr.IsRetryable
+	}
+
 	return newErr
 }
 
@@ -224,6 +255,7 @@ func Augment(err error, context string, params map[string]string) error {
 			Message:     context,
 			Params:      withMergedParams.Params,
 			StackFrames: stack.Stack{},
+			IsRetryable: err.IsRetryable,
 			cause:       err,
 		}
 	default:

@@ -83,6 +83,45 @@ var marshalTestCases = []struct {
 			Message: "NO. FORBIDDEN",
 		},
 	},
+	{
+		&Error{
+			Code:        ErrInternalService,
+			Message:     "foo",
+			IsRetryable: &notRetryable,
+		},
+		&pe.Error{
+			Code:    ErrInternalService,
+			Message: "foo",
+			Retryable: &pe.OptionalBool{
+				Value: false,
+			},
+		},
+	},
+	{
+		&Error{
+			Code:        ErrInternalService,
+			Message:     "foo",
+			IsRetryable: &retryable,
+		},
+		&pe.Error{
+			Code:    ErrInternalService,
+			Message: "foo",
+			Retryable: &pe.OptionalBool{
+				Value: true,
+			},
+		},
+	},
+	{
+		&Error{
+			Code:    ErrInternalService,
+			Message: "foo",
+		},
+		&pe.Error{
+			Code:      ErrInternalService,
+			Message:   "foo",
+			Retryable: nil,
+		},
+	},
 }
 
 func TestMarshal(t *testing.T) {
@@ -151,6 +190,49 @@ var unmarshalTestCases = []struct {
 		&pe.Error{
 			Code:    ErrForbidden,
 			Message: "NO. FORBIDDEN",
+		},
+	},
+	{
+		&Error{
+			Code:        ErrInternalService,
+			Message:     "foo",
+			IsRetryable: &notRetryable,
+			Params:      map[string]string{},
+		},
+		&pe.Error{
+			Code:    ErrInternalService,
+			Message: "foo",
+			Retryable: &pe.OptionalBool{
+				Value: false,
+			},
+		},
+	},
+	{
+		&Error{
+			Code:        ErrInternalService,
+			Message:     "foo",
+			IsRetryable: &retryable,
+			Params:      map[string]string{},
+		},
+		&pe.Error{
+			Code:    ErrInternalService,
+			Message: "foo",
+			Retryable: &pe.OptionalBool{
+				Value: true,
+			},
+		},
+	},
+	{
+		&Error{
+			Code:        ErrInternalService,
+			Message:     "foo",
+			Params:      map[string]string{},
+			IsRetryable: nil,
+		},
+		&pe.Error{
+			Code:      ErrInternalService,
+			Message:   "foo",
+			Retryable: nil,
 		},
 	},
 }
