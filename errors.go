@@ -197,6 +197,7 @@ func addParams(err *Error, params map[string]string) *Error {
 		Message:     err.Message,
 		Params:      copiedParams,
 		StackFrames: err.StackFrames,
+		IsRetryable: err.IsRetryable,
 	}
 }
 
