@@ -3,7 +3,6 @@ package terrors
 import (
 	"testing"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/stretchr/testify/assert"
 
 	pe "github.com/monzo/terrors/proto"
@@ -93,7 +92,7 @@ var marshalTestCases = []struct {
 		&pe.Error{
 			Code:    ErrInternalService,
 			Message: "foo",
-			Retryable: &wrappers.BoolValue{
+			Retryable: &pe.BoolValue{
 				Value: false,
 			},
 		},
@@ -107,7 +106,7 @@ var marshalTestCases = []struct {
 		&pe.Error{
 			Code:    ErrInternalService,
 			Message: "foo",
-			Retryable: &wrappers.BoolValue{
+			Retryable: &pe.BoolValue{
 				Value: true,
 			},
 		},
@@ -203,7 +202,7 @@ var unmarshalTestCases = []struct {
 		&pe.Error{
 			Code:    ErrInternalService,
 			Message: "foo",
-			Retryable: &wrappers.BoolValue{
+			Retryable: &pe.BoolValue{
 				Value: false,
 			},
 		},
@@ -218,7 +217,7 @@ var unmarshalTestCases = []struct {
 		&pe.Error{
 			Code:    ErrInternalService,
 			Message: "foo",
-			Retryable: &wrappers.BoolValue{
+			Retryable: &pe.BoolValue{
 				Value: true,
 			},
 		},

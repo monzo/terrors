@@ -1,7 +1,6 @@
 package terrors
 
 import (
-	"github.com/golang/protobuf/ptypes/wrappers"
 	pe "github.com/monzo/terrors/proto"
 	"github.com/monzo/terrors/stack"
 )
@@ -16,7 +15,7 @@ func Marshal(e *Error) *pe.Error {
 		}
 	}
 
-	retryable := &wrappers.BoolValue{}
+	retryable := &pe.BoolValue{}
 	if e.IsRetryable != nil {
 		retryable.Value = *e.IsRetryable
 	}
