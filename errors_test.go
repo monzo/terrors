@@ -51,6 +51,12 @@ func TestErrorConstructors(t *testing.T) {
 				"another key": "another value",
 			}, ErrUnauthorized,
 		},
+		{
+			PreconditionFailed, "service.foo", "precondition_failed.service.foo", nil, ErrPreconditionFailed,
+		},
+		{
+			RateLimited, "service.foo", "rate_limited.service.foo", nil, ErrRateLimited,
+		},
 	}
 
 	for _, tc := range testCases {
