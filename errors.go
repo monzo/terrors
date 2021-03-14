@@ -243,6 +243,15 @@ func PrefixMatches(err error, prefixParts ...string) bool {
 	return false
 }
 
+// IsRetryable returns true if the error is a terror and whether the error was caused by an action which can be
+// retried.
+func IsRetryable(err error) bool {
+	if terr, ok := Wrap(err, nil).(*Error); ok {
+		return terr.Retryable()
+	}
+	return false
+}
+
 // Augment adds context to an existing error.
 // If the error given is not already a terror, a new terror is created.
 // WARNING: This function is considered experimental, and may be changed without notice.
