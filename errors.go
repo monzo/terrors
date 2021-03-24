@@ -43,6 +43,7 @@ var retryableCodes = []string{
 	ErrInternalService,
 	ErrTimeout,
 	ErrUnknown,
+	ErrRateLimited,
 }
 
 // Error is terror's error. It implements Go's error interface.
