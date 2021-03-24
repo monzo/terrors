@@ -257,7 +257,7 @@ func PrefixMatches(err error, prefixParts ...string) bool {
 // IsRetryable returns true if the error is a terror and whether the error was caused by an action which can be
 // retried.
 func IsRetryable(err error) bool {
-	if r, ok := Wrap(err, nil).(*Error); ok {
+	if r, ok := Propagate(err).(*Error); ok {
 		return r.Retryable()
 	}
 	return false
