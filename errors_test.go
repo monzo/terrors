@@ -1,6 +1,7 @@
 package terrors
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -185,6 +186,19 @@ func TestPrefixMatches(t *testing.T) {
 	assert.False(t, PrefixMatches(err, "You need to pass a value for foo"))
 	assert.False(t, PrefixMatches(err, "missing_param"))
 	assert.False(t, PrefixMatches(nil, ErrBadRequest))
+}
+
+func TestIsRetryable(t *testing.T) {
+	assert.False(t, IsRetryable(BadRequest("", "", nil)))
+	assert.False(t, IsRetryable(BadResponse("", "", nil)))
+	assert.False(t, IsRetryable(NotFound("", "", nil)))
+	assert.False(t, IsRetryable(PreconditionFailed("", "", nil)))
+	assert.True(t, IsRetryable(InternalService("", "", nil)))
+	assert.True(t, IsRetryable(RateLimited("", "", nil)))
+	assert.True(t, IsRetryable(errors.New("")))
+	assert.True(t, IsRetryable(Augment(errors.New(""), "", nil)))
+	assert.True(t, IsRetryable(Wrap(errors.New(""), nil)))
+	assert.False(t, IsRetryable(WrapWithCode(errors.New(""), nil, ErrBadRequest)))
 }
 
 func ExampleWrapWithCode() {
