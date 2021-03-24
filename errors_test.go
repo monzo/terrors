@@ -199,6 +199,24 @@ func TestIsRetryable(t *testing.T) {
 	assert.True(t, IsRetryable(Augment(errors.New(""), "", nil)))
 	assert.True(t, IsRetryable(Wrap(errors.New(""), nil)))
 	assert.False(t, IsRetryable(WrapWithCode(errors.New(""), nil, ErrBadRequest)))
+
+	// Check that IsRetryable honors errors that implement terrors.retryableError
+	assert.False(t, IsRetryable(Augment(&testRetryableError{false}, "", nil)))
+	assert.False(t, IsRetryable(Propagate(&testRetryableError{false})))
+	assert.True(t, IsRetryable(Augment(&testRetryableError{true}, "", nil)))
+	assert.True(t, IsRetryable(Propagate(&testRetryableError{true})))
+}
+
+type testRetryableError struct {
+	retryable bool
+}
+
+func (e *testRetryableError) Retryable() bool {
+	return e.retryable
+}
+
+func (*testRetryableError) Error() string {
+	return ""
 }
 
 func ExampleWrapWithCode() {
