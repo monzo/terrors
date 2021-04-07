@@ -43,6 +43,7 @@ var retryableCodes = []string{
 	ErrInternalService,
 	ErrTimeout,
 	ErrUnknown,
+	ErrRateLimited,
 }
 
 // Error is terror's error. It implements Go's error interface.
@@ -170,17 +171,27 @@ func NewInternalWithCause(err error, message string, params map[string]string, s
 	newErr := errorFactory(errCode(ErrInternalService, subCode), message, params)
 	newErr.cause = err
 
+	switch v := err.(type) {
 	// If the causal error is a terror with retryability set, inherit that value.
 	// Otherwise, we'll default to retryable based on the ErrInternalService code above.
 	// This allows us to have an non-retryable InternalService error if the cause was not-retryable,
 	// which allows the retryability of errors to propagate through the system by default, even
 	// if an error handling case is missed in an upstream.
-	terr, ok := err.(*Error)
-	if ok && terr.IsRetryable != nil {
-		newErr.IsRetryable = terr.IsRetryable
+	case *Error:
+		if v.IsRetryable != nil {
+			newErr.IsRetryable = v.IsRetryable
+		}
+	// Test if the causal error is anything else that implements the same interface and is retryable.
+	case retryableError:
+		r := v.Retryable()
+		newErr.IsRetryable = &r
 	}
 
 	return newErr
+}
+
+type retryableError interface {
+	Retryable() bool
 }
 
 // addParams returns a new error with new params merged into the original error's
@@ -240,6 +251,15 @@ func PrefixMatches(err error, prefixParts ...string) bool {
 		return terr.PrefixMatches(prefixParts...)
 	}
 
+	return false
+}
+
+// IsRetryable returns true if the error is a terror and whether the error was caused by an action which can be
+// retried.
+func IsRetryable(err error) bool {
+	if r, ok := Propagate(err).(*Error); ok {
+		return r.Retryable()
+	}
 	return false
 }
 
