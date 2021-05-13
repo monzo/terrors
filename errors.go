@@ -308,6 +308,8 @@ func Propagate(err error) error {
 // Is checks whether an error is a given code. Similarly to `errors.Is`,
 // this unwinds the error stack and checks each underlying error for the code.
 // If any match, this returns true.
+// Note that Is only behaves differently to PrefixMatches when errors in the stack have different codes.
+// This is the case when errors are initialized with NewInternalWithCause, but not with Augment.
 // We prefer this over using a method receiver on the terrors Error, as the function
 // signature requires an error to test against, and checking against terrors would
 // requite creating a new terror with the specific code.
