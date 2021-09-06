@@ -106,7 +106,6 @@ func (p *Error) legacyErrString() string {
 }
 
 // Unwrap retruns the cause of the error. It may be nil.
-// WARNING: This function is considered experimental, and may be changed without notice.
 func (p *Error) Unwrap() error {
 	return p.cause
 }
@@ -166,7 +165,6 @@ func New(code string, message string, params map[string]string) *Error {
 // error is attached as the `cause`, and can be tested with the `Is` function.
 // You probably want to use the `Augment` func instead;
 // only use this if you need to set a subcode on an error.
-// WARNING: This function is considered experimental, and may be changed without notice.
 func NewInternalWithCause(err error, message string, params map[string]string, subCode string) *Error {
 	newErr := errorFactory(errCode(ErrInternalService, subCode), message, params)
 	newErr.cause = err
@@ -216,6 +214,7 @@ func addParams(err *Error, params map[string]string) *Error {
 // Matches returns whether the string returned from error.Error() contains the given param string. This means you can
 // match the error on different levels e.g. dotted codes `bad_request` or `bad_request.missing_param` or even on the
 // more descriptive message
+// Deprecated: Please use `Is` instead.
 func (p *Error) Matches(match string) bool {
 	return strings.Contains(p.Error(), match)
 }
@@ -224,6 +223,7 @@ func (p *Error) Matches(match string) bool {
 // you can match the error on different levels e.g. dotted codes `bad_request` or `bad_request.missing_param`. Each
 // dotted part can be passed as a separate argument e.g. `terr.PrefixMatches(terrors.ErrBadRequest, "missing_param")`
 // is the same as `terr.PrefixMatches("bad_request.missing_param")`
+// Deprecated: Please use `Is` instead.
 func (p *Error) PrefixMatches(prefixParts ...string) bool {
 	prefix := strings.Join(prefixParts, ".")
 
@@ -233,6 +233,7 @@ func (p *Error) PrefixMatches(prefixParts ...string) bool {
 // Matches returns true if the error is a terror error and the string returned from error.Error() contains the given
 // param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
 // `bad_request.missing_param` or even on the more descriptive message
+// Deprecated: Please use `Is` instead.
 func Matches(err error, match string) bool {
 	if terr, ok := Wrap(err, nil).(*Error); ok {
 		return terr.Matches(match)
@@ -246,6 +247,7 @@ func Matches(err error, match string) bool {
 // `bad_request.missing_param`. Each dotted part can be passed as a separate argument
 // e.g. `terrors.PrefixMatches(terr, terrors.ErrBadRequest, "missing_param")` is the same as
 // terrors.PrefixMatches(terr, "bad_request.missing_param")`
+// Deprecated: Please use `Is` instead.
 func PrefixMatches(err error, prefixParts ...string) bool {
 	if terr, ok := Wrap(err, nil).(*Error); ok {
 		return terr.PrefixMatches(prefixParts...)
@@ -265,7 +267,6 @@ func IsRetryable(err error) bool {
 
 // Augment adds context to an existing error.
 // If the error given is not already a terror, a new terror is created.
-// WARNING: This function is considered experimental, and may be changed without notice.
 func Augment(err error, context string, params map[string]string) error {
 	if err == nil {
 		return nil
@@ -292,7 +293,6 @@ func Augment(err error, context string, params map[string]string) error {
 // create one, and set the given error as the cause.
 // This is a drop-in replacement for `terrors.Wrap(err, nil)` which adds causal
 // chain functionality.
-// WARNING: This function is considered experimental, and may be changed without notice.
 func Propagate(err error) error {
 	if err == nil {
 		return nil
@@ -313,7 +313,6 @@ func Propagate(err error) error {
 // We prefer this over using a method receiver on the terrors Error, as the function
 // signature requires an error to test against, and checking against terrors would
 // requite creating a new terror with the specific code.
-// WARNING: This function is considered experimental, and may be changed without notice.
 func Is(err error, code ...string) bool {
 	switch err := err.(type) {
 	case *Error:
