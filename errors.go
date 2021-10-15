@@ -238,7 +238,7 @@ func (p *Error) PrefixMatches(prefixParts ...string) bool {
 // is _not_ the prefix, then this will be a breaking change. In this case you should update the string to match the
 // prefix. If this is not possible, you can match against the entire error string explicitly, for example:
 //  strings.Contains(err.Error(), "context deadline exceeded")
-// But we consisder this bad practice and is part of the motivation for deprecating Matches in the first place.
+// But we consider this bad practice and is part of the motivation for deprecating Matches in the first place.
 func Matches(err error, match string) bool {
 	if terr, ok := Wrap(err, nil).(*Error); ok {
 		return terr.Matches(match)
