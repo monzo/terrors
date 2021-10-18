@@ -214,7 +214,7 @@ func addParams(err *Error, params map[string]string) *Error {
 // Matches returns whether the string returned from error.Error() contains the given param string. This means you can
 // match the error on different levels e.g. dotted codes `bad_request` or `bad_request.missing_param` or even on the
 // more descriptive message
-// Deprecated: Please use `Is` instead.
+// Deprecated: Please use `Is` instead. See docs for `Matches` for breaking change risks.
 func (p *Error) Matches(match string) bool {
 	return strings.Contains(p.Error(), match)
 }
@@ -233,7 +233,12 @@ func (p *Error) PrefixMatches(prefixParts ...string) bool {
 // Matches returns true if the error is a terror error and the string returned from error.Error() contains the given
 // param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
 // `bad_request.missing_param` or even on the more descriptive message
-// Deprecated: Please use `Is` instead.
+// Deprecated: Please use `Is` instead. Note that `Is` will attempt to match each error in the stack using
+// `PrefixMatches`, so if you were previously matching against a part of the string returned from error.Error() that
+// is _not_ the prefix, then this will be a breaking change. In this case you should update the string to match the
+// prefix. If this is not possible, you can match against the entire error string explicitly, for example:
+//  strings.Contains(err.Error(), "context deadline exceeded")
+// But we consider this bad practice and is part of the motivation for deprecating Matches in the first place.
 func Matches(err error, match string) bool {
 	if terr, ok := Wrap(err, nil).(*Error); ok {
 		return terr.Matches(match)
