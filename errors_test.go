@@ -253,7 +253,7 @@ func TestAugmentError(t *testing.T) {
 	})
 	terr := newErr.(*Error)
 	assert.Equal(t, "internal_service", terr.Code)
-	assert.Equal(t, "added context", terr.Message)
+	assert.Equal(t, "added context: assert.AnError general error for testing", terr.Message)
 
 	assert.Equal(t, "internal_service: added context: assert.AnError general error for testing", terr.Error())
 	assert.Equal(t, "data", terr.Params["meta"])
@@ -269,11 +269,12 @@ func TestAugmentTerror(t *testing.T) {
 	})
 	terr := newErr.(*Error)
 	assert.Equal(t, "not_found.foo", terr.Code)
-	assert.Equal(t, "added context", terr.Message)
+	assert.Equal(t, "added context: failed to find foo", terr.Message)
 	assert.Empty(t, terr.StackFrames)
 
 	assert.Equal(t, "not_found.foo: added context: failed to find foo", terr.Error())
 	assert.Equal(t, base, terr.cause)
+
 }
 
 func TestAugmentNil(t *testing.T) {

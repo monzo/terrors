@@ -78,17 +78,15 @@ func (p *Error) Error() string {
 	var next error = p
 	output := strings.Builder{}
 	output.WriteString(p.Code)
-	for next != nil {
-		output.WriteString(": ")
-		switch typed := next.(type) {
-		case *Error:
-			output.WriteString(typed.Message)
-			next = typed.cause
-		case error:
-			output.WriteString(typed.Error())
-			next = nil
-		}
+	output.WriteString(": ")
+
+	switch typed := next.(type) {
+	case *Error:
+		output.WriteString(typed.Message)
+	case error:
+		output.WriteString(typed.Error())
 	}
+
 	return output.String()
 }
 
@@ -211,6 +209,12 @@ func addParams(err *Error, params map[string]string) *Error {
 	}
 }
 
+// buildContext prepends context to the the underlying error message
+func buildContext(causeMessage, context string) string {
+	return fmt.Sprintf("%s: %s", context, causeMessage)
+
+}
+
 // Matches returns whether the string returned from error.Error() contains the given param string. This means you can
 // match the error on different levels e.g. dotted codes `bad_request` or `bad_request.missing_param` or even on the
 // more descriptive message
@@ -282,14 +286,14 @@ func Augment(err error, context string, params map[string]string) error {
 		// The underlying terror will already have a stack, so we don't take a new trace here.
 		return &Error{
 			Code:        err.Code,
-			Message:     context,
+			Message:     buildContext(err.Message, context),
 			Params:      withMergedParams.Params,
 			StackFrames: stack.Stack{},
 			IsRetryable: err.IsRetryable,
 			cause:       err,
 		}
 	default:
-		return NewInternalWithCause(err, context, params, "")
+		return NewInternalWithCause(err, buildContext(err.Error(), context), params, "")
 	}
 }
 
