@@ -92,6 +92,37 @@ func (p *Error) Error() string {
 	return output.String()
 }
 
+func (p *Error) Format(f fmt.State, verb rune) {
+	var s string
+
+	switch verb {
+	case 's', 'v':
+		if f.Flag('+') {
+			s = p.VerboseString()
+		} else if f.Flag('#') {
+			s = p.GoString()
+		} else {
+			s = p.Error()
+		}
+	}
+
+	if s == "" {
+		fmt.Fprint(f, p)
+	} else {
+		_, _ = f.Write([]byte(s))
+	}
+}
+
+func (p *Error) GoString() string {
+	isRetryable := "nil"
+	if p.IsRetryable != nil {
+		isRetryable = fmt.Sprintf("%#v", *p.IsRetryable)
+	}
+	return fmt.Sprintf("&terrors.Error{Code: %q, Message: %q, Params: %#v, StackFrames: %#v, IsRetryable: %s, cause: %#v}",
+		p.Code, p.Message, p.Params, p.StackFrames, isRetryable, p.cause,
+	)
+}
+
 func (p *Error) legacyErrString() string {
 	if p == nil {
 		return ""
