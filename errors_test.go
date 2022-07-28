@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/monzo/terrors/stack"
 )
@@ -480,4 +481,38 @@ func TestRetryable(t *testing.T) {
 			assert.Equal(t, tc.expected, tc.terr.Retryable())
 		})
 	}
+}
+
+func TestVerbose(t *testing.T) {
+	var err, verboseErr error
+	var terr, verboseTerr *Error
+
+	assert.Nil(t, err)
+	assert.Nil(t, Verbose(err))
+
+	err = errors.New("blah")
+	assert.Same(t, err, Verbose(err))
+
+	err = New("test", "Test", map[string]string{"flavour": "banana"})
+	require.NotNil(t, err)
+
+	verboseErr = Verbose(err)
+
+	terr = err.(*Error)
+	require.NotNil(t, terr)
+
+	verboseTerr = verboseErr.(*Error)
+	require.NotNil(t, verboseTerr)
+
+	assert.Equal(t, err.Error(), terr.ShortString())
+
+	assert.NotSame(t, err, verboseErr)
+	assert.NotSame(t, terr, verboseTerr)
+	assert.Equal(t, verboseErr.Error(), terr.VerboseString())
+	assert.Equal(t, verboseErr.Error(), verboseTerr.VerboseString())
+
+	// the errors should be equal except for the verbose flag
+	verboseTerr.verbose = false
+	assert.Equal(t, terr, verboseTerr)
+
 }

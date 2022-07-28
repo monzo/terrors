@@ -63,12 +63,26 @@ type Error struct {
 	// should not expect it to contain information about terrors from other downstream
 	// processes.
 	cause error
+
+	// verbose is a flag that will cause Error() to return the VerboseString() rather
+	// than the conventional short message. This is intended for ease of debugging,
+	// especially in tests, rather than regular use.
+	verbose bool
 }
 
 // Error returns a string message of the error.
 // It will contain the code and error message. If there is a causal chain, the
-// message from each error in the chain will be added to the output.
+// message from each error in the chain will be added to the output. If the
+// Error is marked as "verbose", it will also return the Params and stack trace.
 func (p *Error) Error() string {
+	if p.verbose {
+		return p.VerboseString()
+	}
+	return p.ShortString()
+}
+
+// ShortString returns the conventional error description usually returned by Error()
+func (p *Error) ShortString() string {
 	if p.cause == nil {
 		// Not sure if the empty code/message cases actually happen, but to be safe, defer to
 		// the 'old' error message if there is no cause present (i.e. we're not using
@@ -131,7 +145,7 @@ func (p *Error) StackString() string {
 
 // VerboseString returns the error message, stack trace and params
 func (p *Error) VerboseString() string {
-	return fmt.Sprintf("%s\nParams: %+v\n%s", p.Error(), p.Params, p.StackString())
+	return fmt.Sprintf("%s\nParams: %+v\n%s", p.ShortString(), p.Params, p.StackString())
 }
 
 // Retryable determines whether the error was caused by an action which can be retried.
@@ -331,5 +345,32 @@ func Is(err error, code ...string) bool {
 		return Is(next, code...)
 	default:
 		return false
+	}
+}
+
+// Verbose returns a shallow copy of the given terrors.Error that returns a "verbose" message for error.Error
+// instead of the usual short version. If passed nil or another underlying error type, it will return it
+// unchanged. This is useful for instance in tests where you may want to write
+//
+//   require.NoError(t, terrors.Verbose(err))
+//
+func Verbose(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch err := err.(type) {
+	case *Error:
+		return &Error{
+			verbose: true,
+
+			Code:        err.Code,
+			Message:     err.Message,
+			Params:      err.Params,
+			StackFrames: err.StackFrames,
+			IsRetryable: err.IsRetryable,
+			cause:       err.cause,
+		}
+	default:
+		return err
 	}
 }
