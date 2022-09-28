@@ -4,14 +4,17 @@
 // user defined error parameters.
 //
 // Terrors can be used to wrap any object that satisfies the error interface:
+//
 //	terr := terrors.Wrap(err, map[string]string{"context": "my_context"})
 //
 // Terrors can be instantiated directly:
-// 	err := terrors.New("not_found", "object not found", map[string]string{
+//
+//	err := terrors.New("not_found", "object not found", map[string]string{
 //		"context": "my_context"
 //	})
 //
 // Terrors offers built-in functions for instantiating Errors with common codes:
+//
 //	err := terrors.NotFound("config_file", "config file not found", map[string]string{
 //		"context": my_context
 //	})
@@ -208,6 +211,7 @@ func addParams(err *Error, params map[string]string) *Error {
 		Params:      copiedParams,
 		StackFrames: err.StackFrames,
 		IsRetryable: err.IsRetryable,
+		cause:       err.cause,
 	}
 }
 
@@ -237,7 +241,9 @@ func (p *Error) PrefixMatches(prefixParts ...string) bool {
 // `PrefixMatches`, so if you were previously matching against a part of the string returned from error.Error() that
 // is _not_ the prefix, then this will be a breaking change. In this case you should update the string to match the
 // prefix. If this is not possible, you can match against the entire error string explicitly, for example:
-//  strings.Contains(err.Error(), "context deadline exceeded")
+//
+//	strings.Contains(err.Error(), "context deadline exceeded")
+//
 // But we consider this bad practice and is part of the motivation for deprecating Matches in the first place.
 func Matches(err error, match string) bool {
 	if terr, ok := Wrap(err, nil).(*Error); ok {
