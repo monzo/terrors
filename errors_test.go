@@ -276,6 +276,15 @@ func TestAugmentTerror(t *testing.T) {
 	assert.Equal(t, base, terr.cause)
 }
 
+func TestAugmentTerrorWithWrap(t *testing.T) {
+	base := NotFound("foo", "failed to find foo", map[string]string{"base": "meta"})
+	augmentedErr := Augment(base, "added context", map[string]string{"new": "meta"})
+	assert.Equal(t, "not_found.foo: added context: failed to find foo", augmentedErr.Error())
+
+	wrappedErr := Wrap(augmentedErr, map[string]string{"wrap": "meta"})
+	assert.Equal(t, "not_found.foo: added context: failed to find foo", wrappedErr.Error())
+}
+
 func TestAugmentNil(t *testing.T) {
 	assert.Nil(t, Augment(nil, "added context", map[string]string{
 		"new": "meta",
