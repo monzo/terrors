@@ -1,6 +1,7 @@
 package terrors
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -122,6 +123,61 @@ var marshalTestCases = []struct {
 			Retryable: nil,
 		},
 	},
+	// Wrapped errors
+	{
+		Augment(&Error{
+			Code:    ErrInternalService,
+			Message: "bar",
+		}, "foo", nil).(*Error),
+		&pe.Error{
+			Code:      ErrInternalService,
+			Message:   "foo: bar",
+			Retryable: nil,
+			Params:    map[string]string{},
+		},
+	},
+	{
+		Augment(&Error{
+			Code:    ErrInternalService,
+			Message: "bar",
+		}, "foo", map[string]string{"key": "value"}).(*Error),
+		&pe.Error{
+			Code:      ErrInternalService,
+			Message:   "foo: bar",
+			Retryable: nil,
+			Params:    map[string]string{"key": "value"},
+		},
+	},
+	{
+		// Nested Augment
+		Augment(
+			Augment(&Error{
+				Code:    ErrInternalService,
+				Message: "baz",
+			},
+				"bar",
+				map[string]string{"key": "value"},
+			),
+			"foo",
+			map[string]string{"key2": "value2"},
+		).(*Error),
+		&pe.Error{
+			Code:      ErrInternalService,
+			Message:   "foo: bar: baz",
+			Retryable: nil,
+			Params:    map[string]string{"key": "value", "key2": "value2"},
+		},
+	},
+	{
+		// Wrapping a Go error
+		Augment(fmt.Errorf("a go error"), "boom", map[string]string{"key": "value"}).(*Error),
+		&pe.Error{
+			Code:      ErrInternalService,
+			Message:   "boom: a go error",
+			Retryable: nil,
+			Params:    map[string]string{"key": "value"},
+		},
+	},
 }
 
 func TestMarshal(t *testing.T) {
@@ -233,6 +289,42 @@ var unmarshalTestCases = []struct {
 			Code:      ErrInternalService,
 			Message:   "foo",
 			Retryable: nil,
+		},
+	},
+	// Wrapped errors only gets unmarshaled as a single error
+	{
+		&Error{
+			Code:    ErrInternalService,
+			Message: "foo: bar: baz", // Augment(Augment(bazErr, "bar", nil), "foo", nil)
+			Params:  map[string]string{},
+		},
+		&pe.Error{
+			Code:    ErrInternalService,
+			Message: "foo: bar: baz",
+			Retryable: &pe.BoolValue{
+				Value: false,
+			},
+		},
+	},
+	{
+		&Error{
+			Code:    ErrInternalService,
+			Message: "foo: bar",
+			Params: map[string]string{
+				"key":  "value",
+				"key2": "value2",
+			},
+		},
+		&pe.Error{
+			Code:    ErrInternalService,
+			Message: "foo: bar",
+			Retryable: &pe.BoolValue{
+				Value: false,
+			},
+			Params: map[string]string{
+				"key":  "value",
+				"key2": "value2",
+			},
 		},
 	},
 }
