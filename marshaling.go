@@ -1,6 +1,8 @@
 package terrors
 
 import (
+	"strings"
+
 	pe "github.com/monzo/terrors/proto"
 	"github.com/monzo/terrors/stack"
 )
@@ -15,14 +17,30 @@ func Marshal(e *Error) *pe.Error {
 		}
 	}
 
+	// Build message with all the context
+	errMessage := strings.Builder{}
+	errMessage.WriteString(e.Message)
+	next := e.cause
+	for next != nil {
+		errMessage.WriteString(": ")
+		switch typed := next.(type) {
+		case *Error:
+			errMessage.WriteString(typed.Message)
+			next = typed.cause
+		case error:
+			errMessage.WriteString(typed.Error())
+			next = nil
+		}
+	}
+
 	retryable := &pe.BoolValue{}
 	if e.IsRetryable != nil {
 		retryable.Value = *e.IsRetryable
 	}
 
-	err := &pe.Error{
+	err := pe.Error{
 		Code:      e.Code,
-		Message:   e.Message,
+		Message:   errMessage.String(),
 		Stack:     stackToProto(e.StackFrames),
 		Params:    e.Params,
 		Retryable: retryable,
@@ -30,7 +48,7 @@ func Marshal(e *Error) *pe.Error {
 	if err.Code == "" {
 		err.Code = ErrUnknown
 	}
-	return err
+	return &err
 }
 
 // Unmarshal a protobuf error into a local error
