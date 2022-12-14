@@ -124,10 +124,10 @@ var marshalTestCases = []struct {
 	},
 	{
 		&Error{
-			Code:          ErrTimeout,
-			Message:       "foo",
-			IsRetryable:   &retryable,
-			MarshallCount: 1000,
+			Code:         ErrTimeout,
+			Message:      "foo",
+			IsRetryable:  &retryable,
+			MarshalCount: 1000,
 		},
 		&pe.Error{
 			Code:      ErrTimeout,
@@ -143,7 +143,7 @@ func TestMarshal(t *testing.T) {
 		assert.Equal(t, tc.protoErr.Code, protoError.Code)
 		assert.Equal(t, tc.protoErr.Message, protoError.Message)
 		assert.Equal(t, tc.protoErr.Params, protoError.Params)
-		assert.Equal(t, tc.platErr.MarshallCount+1, int(protoError.MarshallCount))
+		assert.Equal(t, tc.platErr.MarshalCount+1, int(protoError.MarshalCount))
 
 		if tc.platErr.IsRetryable == nil {
 			assert.False(t, protoError.Retryable.Value)
@@ -257,11 +257,11 @@ var unmarshalTestCases = []struct {
 	},
 	{
 		&Error{
-			Code:          ErrInternalService,
-			Message:       "foo",
-			Params:        map[string]string{},
-			IsRetryable:   &retryable,
-			MarshallCount: 9876,
+			Code:         ErrInternalService,
+			Message:      "foo",
+			Params:       map[string]string{},
+			IsRetryable:  &retryable,
+			MarshalCount: 9876,
 		},
 		&pe.Error{
 			Code:    ErrInternalService,
@@ -269,7 +269,7 @@ var unmarshalTestCases = []struct {
 			Retryable: &pe.BoolValue{
 				Value: true,
 			},
-			MarshallCount: 9876,
+			MarshalCount: 9876,
 		},
 	},
 }
@@ -280,7 +280,7 @@ func TestUnmarshal(t *testing.T) {
 		assert.Equal(t, tc.platErr.Code, platErr.Code)
 		assert.Equal(t, tc.platErr.Message, platErr.Message)
 		assert.Equal(t, tc.platErr.Params, platErr.Params)
-		assert.Equal(t, tc.platErr.MarshallCount, platErr.MarshallCount)
+		assert.Equal(t, tc.platErr.MarshalCount, platErr.MarshalCount)
 
 		if tc.platErr.IsRetryable == nil {
 			assert.Nil(t, platErr.IsRetryable)
