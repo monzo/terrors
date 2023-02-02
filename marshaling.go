@@ -23,6 +23,7 @@ func Marshal(e *Error) *pe.Error {
 	err := &pe.Error{
 		Code:         e.Code,
 		Message:      e.Message,
+		MessageChain: e.MessageChain,
 		Stack:        stackToProto(e.StackFrames),
 		Params:       e.Params,
 		Retryable:    retryable,
@@ -52,6 +53,7 @@ func Unmarshal(p *pe.Error) *Error {
 	err := &Error{
 		Code:         p.Code,
 		Message:      p.Message,
+		MessageChain: p.MessageChain,
 		StackFrames:  protoToStack(p.Stack),
 		Params:       p.Params,
 		IsRetryable:  retryable,

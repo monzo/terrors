@@ -490,3 +490,11 @@ func TestRetryable(t *testing.T) {
 		})
 	}
 }
+
+func TestErrorChain(t *testing.T) {
+	err := NotFound("thingy", "can't find it", nil)
+	err.MessageChain = []string{"the 5th", "the 4th", "the 3rd", "the 2nd", "the 1st"}
+
+	assert.Equal(t, "not_found.thingy: can't find it", err.Error())
+	assert.Equal(t, "not_found.thingy: can't find it: the 5th: the 4th: the 3rd: the 2nd: the 1st", err.ErrorChain())
+}
