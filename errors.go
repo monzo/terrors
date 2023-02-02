@@ -59,6 +59,11 @@ type Error struct {
 	// exported for serialization, but you should use Retryable to read the value.
 	IsRetryable *bool `json:"is_retryable"`
 
+	// Incremented each time the error is marshalled so that we can tell (approximately) how many services the error
+	// has propagated through.  Higher level code can use this to influence decisions, for example it may only be
+	// desirable to retry on an error that's only been marshalled once to avoid retries on top of retries... ad nauseam
+	MarshalCount int `json:"marshal_count"`
+
 	// Cause is the initial cause of this error, and will be populated
 	// when using the Propagate function. This is intentionally not exported
 	// so that we don't serialize causes and send them across process boundaries.
@@ -179,6 +184,7 @@ func NewInternalWithCause(err error, message string, params map[string]string, s
 	// which allows the retryability of errors to propagate through the system by default, even
 	// if an error handling case is missed in an upstream.
 	case *Error:
+		newErr.MarshalCount = v.MarshalCount
 		if v.IsRetryable != nil {
 			newErr.IsRetryable = v.IsRetryable
 		}
@@ -206,12 +212,13 @@ func addParams(err *Error, params map[string]string) *Error {
 	}
 
 	return &Error{
-		Code:        err.Code,
-		Message:     err.Message,
-		Params:      copiedParams,
-		StackFrames: err.StackFrames,
-		IsRetryable: err.IsRetryable,
-		cause:       err.cause,
+		Code:         err.Code,
+		Message:      err.Message,
+		Params:       copiedParams,
+		StackFrames:  err.StackFrames,
+		IsRetryable:  err.IsRetryable,
+		MarshalCount: err.MarshalCount,
+		cause:        err.cause,
 	}
 }
 
@@ -287,12 +294,13 @@ func Augment(err error, context string, params map[string]string) error {
 		withMergedParams := addParams(err, params)
 		// The underlying terror will already have a stack, so we don't take a new trace here.
 		return &Error{
-			Code:        err.Code,
-			Message:     context,
-			Params:      withMergedParams.Params,
-			StackFrames: stack.Stack{},
-			IsRetryable: err.IsRetryable,
-			cause:       err,
+			Code:         err.Code,
+			Message:      context,
+			Params:       withMergedParams.Params,
+			StackFrames:  stack.Stack{},
+			IsRetryable:  err.IsRetryable,
+			MarshalCount: err.MarshalCount,
+			cause:        err,
 		}
 	default:
 		return NewInternalWithCause(err, context, params, "")
