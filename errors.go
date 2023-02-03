@@ -105,21 +105,6 @@ func (p *Error) Error() string {
 	return output.String()
 }
 
-// ErrorChain returns an extended error message which includes a complete causal chain.
-// When errors are marshalled certain information is lost (e.g. the 'cause').  This means if an error travels through
-// a number of services (and it's potentially augmented at each hop) that the core error message may be lost.
-func (p *Error) ErrorChain() string {
-	msg := p.Error()
-	chain := p.MessageChain
-
-	// Chances are the latest error in the chain is already part of the standard error message.
-	if len(chain) > 0 && strings.Contains(msg, chain[0]) {
-		chain = chain[1:]
-	}
-
-	return fmt.Sprintf("%s: %s", msg, strings.Join(chain, ": "))
-}
-
 func (p *Error) legacyErrString() string {
 	if p == nil {
 		return ""
