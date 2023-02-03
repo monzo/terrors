@@ -64,6 +64,11 @@ type Error struct {
 	// desirable to retry on an error that's only been marshalled once to avoid retries on top of retries... ad nauseam
 	MarshalCount int `json:"marshal_count"`
 
+	// When errors are marshalled certain information is lost (e.g. the 'cause').  This means if an error travels through
+	// a number of services (and it's potentially augmented at each hop) that the core error message may be lost. The
+	// history of an error is often a helpful debugging aid, so MessageChain is used to track this.
+	MessageChain []string `json:"message_chain"`
+
 	// Cause is the initial cause of this error, and will be populated
 	// when using the Propagate function. This is intentionally not exported
 	// so that we don't serialize causes and send them across process boundaries.
@@ -214,6 +219,7 @@ func addParams(err *Error, params map[string]string) *Error {
 	return &Error{
 		Code:         err.Code,
 		Message:      err.Message,
+		MessageChain: err.MessageChain,
 		Params:       copiedParams,
 		StackFrames:  err.StackFrames,
 		IsRetryable:  err.IsRetryable,
@@ -296,6 +302,7 @@ func Augment(err error, context string, params map[string]string) error {
 		return &Error{
 			Code:         err.Code,
 			Message:      context,
+			MessageChain: append([]string{err.Message}, err.MessageChain...),
 			Params:       withMergedParams.Params,
 			StackFrames:  stack.Stack{},
 			IsRetryable:  err.IsRetryable,
