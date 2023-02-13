@@ -27,6 +27,19 @@ type Frame struct {
 
 type Stack []*Frame
 
+func (s Stack) GoString() string {
+	b := strings.Builder{}
+
+	if len(s) > 0 {
+		b.WriteString(fmt.Sprintf("&%#v", *s[0]))
+		for _, f := range s[1:] {
+			b.WriteString(fmt.Sprintf(", &%#v", *f))
+		}
+	}
+
+	return fmt.Sprintf("[]*stack.Frame{%s}", b.String())
+}
+
 func BuildStack(skip int) Stack {
 	stack := make(Stack, 0)
 

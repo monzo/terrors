@@ -498,3 +498,22 @@ func TestRetryable(t *testing.T) {
 		})
 	}
 }
+
+func TestFormat(t *testing.T) {
+	err := New("test", "Test", map[string]string{"flavour": "banana"})
+
+	assert.Equal(t, err.Error(),
+		fmt.Sprintf("%v", err))
+	assert.Equal(t, err.VerboseString(),
+		fmt.Sprintf("%+v", err))
+
+	goStringErr := fmt.Sprintf("%#v", err)
+	goStringErrPrefix := `&terrors.Error{Code: "test", Message: "Test", Params: map[string]string{"flavour":"banana"}, StackFrames: []*stack.Frame{`
+	assert.Equal(t, goStringErrPrefix, goStringErr[0:len(goStringErrPrefix)])
+
+	goStringErrSuffix := `}, IsRetryable: false, cause: <nil>}`
+	assert.Equal(t, goStringErrSuffix, goStringErr[len(goStringErr)-len(goStringErrSuffix):])
+
+	assert.Equal(t, err.Error(),
+		fmt.Sprintf("%d", err))
+}
