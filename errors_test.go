@@ -412,6 +412,14 @@ func TestNewInternalWithCauseStack(t *testing.T) {
 	assert.Contains(t, err.StackFrames[0].Method, "TestNewInternalWithCauseStack")
 }
 
+func TestNewInternalWithCauseMessageChain(t *testing.T) {
+	// Check non-terrors Errors are included at the base of the MessageChain
+	innerTerror := NewInternalWithCause(errors.New("wrapped error"), "inner terror", nil, "")
+	// Check that the message is included when the cause is a terrors Error too
+	outerTerror := NewInternalWithCause(innerTerror, "outer terror", nil, "")
+	assert.Equal(t, []string{"inner terror", "wrapped error"}, outerTerror.MessageChain)
+}
+
 func TestPropagate(t *testing.T) {
 	t.Run("terror", func(t *testing.T) {
 		terr := &Error{Code: "foo"}

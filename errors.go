@@ -183,6 +183,13 @@ func NewInternalWithCause(err error, message string, params map[string]string, s
 	newErr.cause = err
 
 	switch v := err.(type) {
+	case *Error:
+		newErr.MessageChain = append([]string{v.Message}, v.MessageChain...)
+	default:
+		newErr.MessageChain = []string{err.Error()}
+	}
+
+	switch v := err.(type) {
 	// If the causal error is a terror with retryability set, inherit that value.
 	// Otherwise, we'll default to retryable based on the ErrInternalService code above.
 	// This allows us to have an non-retryable InternalService error if the cause was not-retryable,
