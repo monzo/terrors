@@ -21,9 +21,12 @@ func Wrap(err error, params map[string]string) error {
 // an `Error`, it will add the params passed in to the params of the error
 // Deprecated: Use Augment instead. If you need to set the code of the error,
 // then you should return a new error instead. For example
-//  terrors.WrapWithCode(err, map[string]string{"foo": "bar"}, "bad_request.failed")
+//
+//	terrors.WrapWithCode(err, map[string]string{"foo": "bar"}, "bad_request.failed")
+//
 // would become
-//  terrors.BadRequest("failed", err.Error(), map[string]string{"foo": "bar"})
+//
+//	terrors.BadRequest("failed", err.Error(), map[string]string{"foo": "bar"})
 func WrapWithCode(err error, params map[string]string, code string) error {
 	if err == nil {
 		return nil
@@ -89,6 +92,12 @@ func PreconditionFailed(code, message string, params map[string]string) *Error {
 // and that the caller should back-off.
 func RateLimited(code, message string, params map[string]string) *Error {
 	return errorFactory(errCode(ErrRateLimited, code), message, params)
+}
+
+// Fatal creates a new error representing an unrecoverable failure.
+// Errors of this type are not considered retryable.
+func Fatal(code, message string, params map[string]string) *Error {
+	return errorFactory(errCode(ErrFatal, code), message, params)
 }
 
 // errorConstructor returns a `*Error` with the specified code, message and params.

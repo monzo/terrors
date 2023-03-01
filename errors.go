@@ -40,6 +40,7 @@ const (
 	ErrUnauthorized       = "unauthorized"
 	ErrUnknown            = "unknown"
 	ErrRateLimited        = "rate_limited"
+	ErrFatal              = "fatal"
 )
 
 var retryableCodes = []string{

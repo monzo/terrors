@@ -58,6 +58,9 @@ func TestErrorConstructors(t *testing.T) {
 		{
 			RateLimited, "service.foo", "rate_limited.service.foo", nil, ErrRateLimited,
 		},
+		{
+			Fatal, "service.foo", "fatal.service.foo", nil, ErrFatal,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -199,6 +202,7 @@ func TestIsRetryable(t *testing.T) {
 	assert.True(t, IsRetryable(Augment(errors.New(""), "", nil)))
 	assert.True(t, IsRetryable(Wrap(errors.New(""), nil)))
 	assert.False(t, IsRetryable(WrapWithCode(errors.New(""), nil, ErrBadRequest)))
+	assert.False(t, IsRetryable(Fatal("", "", nil)))
 
 	// Check that IsRetryable honors errors that implement terrors.retryableError
 	// (after already being converted to a terror)
