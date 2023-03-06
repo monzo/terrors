@@ -181,6 +181,10 @@ func (p *Error) SetIsRetryable(value bool) {
 	}
 }
 
+// SetIsUnexpected can be used to explicitly mark an error as unexpected or not. In practice the vast majority of 
+// code should not need to use this. An example use case might be when returning a validation error that must
+// mean there is a coding mistake somewhere (e.g. default statement in a switch that is never expected to be 
+// taken). By marking the error as unexpected there is a greater chance that an alert will be sent.
 func (p *Error) SetIsUnexpected(value bool) {
 	if value {
 		p.IsUnexpected = &unexpected
