@@ -507,6 +507,11 @@ func TestUnexpected(t *testing.T) {
 		expect bool
 	}{
 		{
+			name:   "default",
+			terr:   Error{},
+			expect: false,
+		},
+		{
 			name: "unexpected",
 			terr: Error{
 				IsUnexpected: &unexpected,
