@@ -20,6 +20,11 @@ func Marshal(e *Error) *pe.Error {
 		retryable.Value = *e.IsRetryable
 	}
 
+	unexpected := &pe.BoolValue{}
+	if e.IsUnexpected != nil {
+		unexpected.Value = *e.IsUnexpected
+	}
+
 	err := &pe.Error{
 		Code:         e.Code,
 		Message:      e.Message,
@@ -27,6 +32,7 @@ func Marshal(e *Error) *pe.Error {
 		Stack:        stackToProto(e.StackFrames),
 		Params:       e.Params,
 		Retryable:    retryable,
+		Unexpected:   unexpected,
 		MarshalCount: int32(e.MarshalCount + 1),
 	}
 	if err.Code == "" {
@@ -50,6 +56,11 @@ func Unmarshal(p *pe.Error) *Error {
 		retryable = &p.Retryable.Value
 	}
 
+	var unexpected *bool
+	if p.Unexpected != nil {
+		unexpected = &p.Unexpected.Value
+	}
+
 	err := &Error{
 		Code:         p.Code,
 		Message:      p.Message,
@@ -57,6 +68,7 @@ func Unmarshal(p *pe.Error) *Error {
 		StackFrames:  protoToStack(p.Stack),
 		Params:       p.Params,
 		IsRetryable:  retryable,
+		IsUnexpected: unexpected,
 		MarshalCount: int(p.MarshalCount),
 	}
 	if err.Code == "" {

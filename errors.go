@@ -56,8 +56,11 @@ type Error struct {
 	Params      map[string]string `json:"params"`
 	StackFrames stack.Stack       `json:"stack"`
 
-	// exported for serialization, but you should use Retryable to read the value.
+	// Exported for serialization, but you should use Retryable to read the value.
 	IsRetryable *bool `json:"is_retryable"`
+
+	// Exported for serialization, but you should use Unexpected to read the value.
+	IsUnexpected *bool `json:"is_unexpected"`
 
 	// Incremented each time the error is marshalled so that we can tell (approximately) how many services the error
 	// has propagated through.  Higher level code can use this to influence decisions, for example it may only be
@@ -160,6 +163,32 @@ func (p *Error) Retryable() bool {
 	return false
 }
 
+// Unexpected states whether an error is not expected to occur. In many cases this will be due to a bug, e.g. due to a
+// defensive check failing
+func (p *Error) Unexpected() bool {
+	if p.IsUnexpected != nil {
+		return *p.IsUnexpected
+	}
+
+	return false
+}
+
+func (p *Error) SetIsRetryable(value bool) {
+	if value {
+		p.IsRetryable = &retryable
+	} else {
+		p.IsRetryable = &notRetryable
+	}
+}
+
+func (p *Error) SetIsUnexpected(value bool) {
+	if value {
+		p.IsUnexpected = &unexpected
+	} else {
+		p.IsUnexpected = &notUnexpected
+	}
+}
+
 // LogMetadata implements the logMetadataProvider interface in the slog library which means that
 // the error params will automatically be merged with the slog metadata.
 // Additionally we put stack data in here for slog use.
@@ -230,6 +259,7 @@ func addParams(err *Error, params map[string]string) *Error {
 		Params:       copiedParams,
 		StackFrames:  err.StackFrames,
 		IsRetryable:  err.IsRetryable,
+		IsUnexpected: err.IsUnexpected,
 		MarshalCount: err.MarshalCount,
 		cause:        err.cause,
 	}
@@ -313,6 +343,7 @@ func Augment(err error, context string, params map[string]string) error {
 			Params:       withMergedParams.Params,
 			StackFrames:  stack.Stack{},
 			IsRetryable:  err.IsRetryable,
+			IsUnexpected: err.IsUnexpected,
 			MarshalCount: err.MarshalCount,
 			cause:        err,
 		}

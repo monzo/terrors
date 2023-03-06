@@ -124,6 +124,30 @@ var marshalTestCases = []struct {
 	},
 	{
 		&Error{
+			Code:         ErrInternalService,
+			Message:      "foo",
+			IsUnexpected: &unexpected,
+		},
+		&pe.Error{
+			Code:       ErrInternalService,
+			Message:    "foo",
+			Unexpected: &pe.BoolValue{Value: true},
+		},
+	},
+	{
+		&Error{
+			Code:         ErrInternalService,
+			Message:      "foo",
+			IsUnexpected: &notUnexpected,
+		},
+		&pe.Error{
+			Code:       ErrInternalService,
+			Message:    "foo",
+			Unexpected: &pe.BoolValue{Value: false},
+		},
+	},
+	{
+		&Error{
 			Code:         ErrTimeout,
 			Message:      "foo",
 			IsRetryable:  &retryable,
@@ -163,6 +187,14 @@ func TestMarshal(t *testing.T) {
 			assert.False(t, protoError.Retryable.Value)
 		} else {
 			assert.Equal(t, *tc.platErr.IsRetryable, protoError.Retryable.Value)
+			assert.Equal(t, tc.protoErr.Retryable.Value, protoError.Retryable.Value)
+		}
+
+		if tc.platErr.IsUnexpected == nil {
+			assert.False(t, protoError.Unexpected.Value)
+		} else {
+			assert.Equal(t, *tc.platErr.IsUnexpected, protoError.Unexpected.Value)
+			assert.Equal(t, tc.protoErr.Unexpected.Value, protoError.Unexpected.Value)
 		}
 
 		if tc.platErr.MessageChain != nil {
@@ -247,6 +279,36 @@ var unmarshalTestCases = []struct {
 	},
 	{
 		&Error{
+			Code:         ErrInternalService,
+			Message:      "foo",
+			IsUnexpected: &unexpected,
+			Params:       map[string]string{},
+		},
+		&pe.Error{
+			Code:    ErrInternalService,
+			Message: "foo",
+			Unexpected: &pe.BoolValue{
+				Value: true,
+			},
+		},
+	},
+	{
+		&Error{
+			Code:         ErrInternalService,
+			Message:      "foo",
+			IsUnexpected: &notUnexpected,
+			Params:       map[string]string{},
+		},
+		&pe.Error{
+			Code:    ErrInternalService,
+			Message: "foo",
+			Unexpected: &pe.BoolValue{
+				Value: false,
+			},
+		},
+	},
+	{
+		&Error{
 			Code:        ErrInternalService,
 			Message:     "foo",
 			IsRetryable: &retryable,
@@ -323,6 +385,13 @@ func TestUnmarshal(t *testing.T) {
 			assert.Nil(t, platErr.IsRetryable)
 		} else {
 			assert.Equal(t, *tc.platErr.IsRetryable, *platErr.IsRetryable)
+		}
+
+		assert.Equal(t, tc.platErr.Unexpected(), platErr.Unexpected())
+		if tc.protoErr.Unexpected == nil {
+			assert.False(t, platErr.Unexpected())
+		} else {
+			assert.Equal(t, tc.protoErr.Unexpected.Value, platErr.Unexpected())
 		}
 
 		if tc.platErr.MessageChain != nil {

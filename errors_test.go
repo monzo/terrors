@@ -193,6 +193,7 @@ func TestIsRetryable(t *testing.T) {
 	assert.False(t, IsRetryable(BadResponse("", "", nil)))
 	assert.False(t, IsRetryable(NotFound("", "", nil)))
 	assert.False(t, IsRetryable(PreconditionFailed("", "", nil)))
+	assert.False(t, IsRetryable(NonRetryableInternalService("", "", nil)))
 	assert.True(t, IsRetryable(InternalService("", "", nil)))
 	assert.True(t, IsRetryable(RateLimited("", "", nil)))
 	assert.True(t, IsRetryable(errors.New("")))
@@ -497,4 +498,55 @@ func TestRetryable(t *testing.T) {
 			assert.Equal(t, tc.expected, tc.terr.Retryable())
 		})
 	}
+}
+
+func TestUnexpected(t *testing.T) {
+	cases := []struct {
+		name   string
+		terr   Error
+		expect bool
+	}{
+		{
+			name: "unexpected",
+			terr: Error{
+				IsUnexpected: &unexpected,
+			},
+			expect: true,
+		},
+		{
+			name: "not unexpected",
+			terr: Error{
+				IsUnexpected: &notUnexpected,
+			},
+			expect: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(t.Name(), func(t *testing.T) {
+			assert.Equal(t, tc.expect, tc.terr.Unexpected())
+		})
+	}
+}
+
+func TestSetIsRetryable(t *testing.T) {
+	err := New("code", "message", nil)
+	assert.False(t, *err.IsRetryable)
+
+	err.SetIsRetryable(true)
+	assert.True(t, *err.IsRetryable)
+
+	err.SetIsRetryable(false)
+	assert.False(t, *err.IsRetryable)
+}
+
+func TestSetIsUnexpected(t *testing.T) {
+	err := New("code", "message", nil)
+	assert.False(t, *err.IsUnexpected)
+
+	err.SetIsUnexpected(true)
+	assert.True(t, *err.IsUnexpected)
+
+	err.SetIsUnexpected(false)
+	assert.False(t, *err.IsUnexpected)
 }
