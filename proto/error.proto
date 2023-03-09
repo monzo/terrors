@@ -16,6 +16,7 @@ message Error {
 	BoolValue retryable = 5;
 	int32 marshal_count = 6;
 	repeated string message_chain = 7;
+	BoolValue unexpected = 8;
 }
 
 message BoolValue {
