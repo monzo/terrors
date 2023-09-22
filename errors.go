@@ -91,9 +91,16 @@ func (p *Error) Error() string {
 		// new wrapping functionality)
 		return p.legacyErrString()
 	}
-	var next error = p
+	return fmt.Sprintf("%s: %s", p.Code, p.ErrorMessage())
+}
+
+// ErrorMessage returns a string message of the error.
+// It will contain the error message, but not the code. If there is a causal
+// chain, the message from each error in the chain will be added to the output.
+func (p *Error) ErrorMessage() string {
 	output := strings.Builder{}
-	output.WriteString(p.Code)
+	output.WriteString(p.Message)
+	var next error = p.cause
 	for next != nil {
 		output.WriteString(": ")
 		switch typed := next.(type) {
