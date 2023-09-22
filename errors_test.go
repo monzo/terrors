@@ -454,6 +454,34 @@ func TestStackTrace(t *testing.T) {
 	})
 }
 
+func TestErrorMessage(t *testing.T) {
+	cases := []struct {
+		desc     string
+		terr     Error
+		expected string
+	}{
+		{
+			desc:     "plain terror",
+			terr:     Error{Code: "code", Message: "message"},
+			expected: "message",
+		},
+		{
+			desc: "terror with cause",
+			terr: Error{Code: "code", Message: "message", cause: &Error{
+				Code: "code_inner", Message: "message_inner",
+			}},
+			expected: "message: message_inner",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			msg := tc.terr.ErrorMessage()
+			assert.Equal(t, tc.expected, msg)
+		})
+	}
+}
+
 func TestRetryable(t *testing.T) {
 	cases := []struct {
 		desc     string
