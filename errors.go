@@ -29,6 +29,7 @@ import (
 
 // Generic error codes. Each of these has their own constructor for convenience.
 // You can use any string as a code, just use the `New` method.
+// Warning: any new generic error code must be added to GenericErrorCodes.
 const (
 	ErrBadRequest         = "bad_request"
 	ErrBadResponse        = "bad_response"
@@ -41,6 +42,20 @@ const (
 	ErrUnknown            = "unknown"
 	ErrRateLimited        = "rate_limited"
 )
+
+// GenericErrorCodes is a list of all well known generic error codes.
+var GenericErrorCodes = []string{
+	ErrBadRequest,
+	ErrBadResponse,
+	ErrForbidden,
+	ErrInternalService,
+	ErrNotFound,
+	ErrPreconditionFailed,
+	ErrTimeout,
+	ErrUnauthorized,
+	ErrUnknown,
+	ErrRateLimited,
+}
 
 var retryableCodes = []string{
 	ErrInternalService,
@@ -188,9 +203,9 @@ func (p *Error) SetIsRetryable(value bool) {
 	}
 }
 
-// SetIsUnexpected can be used to explicitly mark an error as unexpected or not. In practice the vast majority of 
+// SetIsUnexpected can be used to explicitly mark an error as unexpected or not. In practice the vast majority of
 // code should not need to use this. An example use case might be when returning a validation error that must
-// mean there is a coding mistake somewhere (e.g. default statement in a switch that is never expected to be 
+// mean there is a coding mistake somewhere (e.g. default statement in a switch that is never expected to be
 // taken). By marking the error as unexpected there is a greater chance that an alert will be sent.
 func (p *Error) SetIsUnexpected(value bool) {
 	if value {
