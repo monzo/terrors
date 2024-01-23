@@ -11,10 +11,11 @@ Terrors is built and used at [Monzo](https://monzo.com/).
 
 ## Usage
 
-Terrors can be used to wrap any object that satisfies the error interface:
+Terrors can be used to add context to an existing error that satisfies the error interface:
+
 
 ```go
-terr := terrors.Wrap(err, map[string]string{"context": "my_context"})
+terr := terrors.Augment(err, "Message", map[string]string{"context": "my_context"})
 ```
 Terrors can be instantiated directly:
 
