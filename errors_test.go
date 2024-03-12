@@ -583,3 +583,15 @@ func TestSetIsUnexpected(t *testing.T) {
 	err.SetIsUnexpected(false)
 	assert.False(t, *err.IsUnexpected)
 }
+
+func failyFunction() error {
+	return InternalService("halp", "I'm in trouble", nil)
+}
+
+func TestStackStringChasesCausalChain(t *testing.T) {
+	err := Augment(failyFunction(), "something may be up", nil)
+	terr := err.(*Error)
+	ss := terr.StackString()
+	t.Log(ss)
+	assert.Contains(t, ss, "failyFunction")
+}

@@ -160,10 +160,24 @@ func (p *Error) StackTrace() []uintptr {
 
 // StackString formats the stack as a beautiful string with newlines
 func (p *Error) StackString() string {
+	// TODO: Use a string builder.
 	stackStr := ""
-	for _, frame := range p.StackFrames {
-		stackStr = fmt.Sprintf("%s\n  %s:%d in %s", stackStr, frame.Filename, frame.Line, frame.Method)
+	terr := p
+	for terr != nil {
+		if len(stackStr) != 0 && len(terr.StackFrames) > 0 {
+			stackStr = fmt.Sprintf("%s\n---\n", stackStr)
+		}
+		for _, frame := range terr.StackFrames {
+			stackStr = fmt.Sprintf("%s\n  %s:%d in %s", stackStr, frame.Filename, frame.Line, frame.Method)
+		}
+
+		if tcause, ok := terr.cause.(*Error); ok {
+			terr = tcause
+		} else {
+			break
+		}
 	}
+
 	return stackStr
 }
 
