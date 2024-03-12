@@ -583,3 +583,36 @@ func TestSetIsUnexpected(t *testing.T) {
 	err.SetIsUnexpected(false)
 	assert.False(t, *err.IsUnexpected)
 }
+
+func failyFunction() error {
+	return InternalService("halp", "I'm in trouble", nil)
+}
+
+func TestStackStringChasesCausalChain(t *testing.T) {
+	err := Augment(failyFunction(), "something may be up", nil)
+	terr := err.(*Error)
+	ss := terr.StackString()
+	t.Log(ss)
+	assert.Contains(t, ss, "failyFunction")
+}
+
+func TestCircularErrorProducesFiniteOutputWithStackFrames(t *testing.T) {
+	orig := failyFunction()
+	err := Augment(orig, "something may be up", nil)
+	terr := err.(*Error)
+	terr.cause = terr
+	terr.StackFrames = orig.(*Error).StackFrames
+	ss := terr.StackString()
+
+	// The default field size limit used in elastic-slog. It's kind of arbitrary, but it'll do for now.
+	assert.Less(t, len(ss), 32000)
+	assert.GreaterOrEqual(t, len(ss), 32000-1000)
+}
+func TestCircularErrorProducesFiniteOutputWithoutStackFrames(t *testing.T) {
+	err := Augment(failyFunction(), "something may be up", nil)
+	terr := err.(*Error)
+	terr.cause = terr
+	ss := terr.StackString()
+	// There's no actual stack in the causal cycle, so we don't render anything here.
+	assert.Empty(t, ss)
+}
