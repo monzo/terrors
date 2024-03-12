@@ -162,20 +162,37 @@ func (p *Error) StackTrace() []uintptr {
 // encounter more than one terror in the chain with a stack frame, we'll print
 // each one, separated by three hyphens on their own line.
 func (p *Error) StackString() string {
+	// 32,000 seems like a reasonable limit for a stack trace. Otherwise, we risk
+	// overwhelming downstream systems.
+	return StackStringWithMaxSize(p, 32000)
+}
+
+func StackStringWithMaxSize(p *Error, sizeLimit int) string {
+	// if we run into this many causes, we've likely run into something absurd. Like
+	// a self causing error.
+	const maxCausalDepth = 1024
 	var buffer strings.Builder
 	terr := p
+	var causalDepth int
+outer:
 	for terr != nil {
 		if buffer.Len() != 0 && len(terr.StackFrames) > 0 {
 			fmt.Fprintf(&buffer, "\n---")
 		}
 		for _, frame := range terr.StackFrames {
+			// 10 seems like a reasonable estimate of how large the rest of the line would be.
+			estimatedLineLen := len(frame.Filename) + len(frame.Method) + 16
+			if estimatedLineLen+buffer.Len() > sizeLimit {
+				break outer
+			}
 			fmt.Fprintf(&buffer, "\n  %s:%d in %s", frame.Filename, frame.Line, frame.Method)
 		}
 
-		if tcause, ok := terr.cause.(*Error); ok {
+		if tcause, ok := terr.cause.(*Error); ok && causalDepth < maxCausalDepth {
 			terr = tcause
+			causalDepth += 1
 		} else {
-			break
+			break outer
 		}
 	}
 
