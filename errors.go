@@ -158,7 +158,9 @@ func (p *Error) StackTrace() []uintptr {
 	return out
 }
 
-// StackString formats the stack as a beautiful string with newlines
+// StackString formats the stacks from the terror chain as a string. If we
+// encounter more than one terror in the chain with a stack frame, we'll print
+// each one, separated by three hyphens on their own line.
 func (p *Error) StackString() string {
 	var buffer strings.Builder
 	terr := p
