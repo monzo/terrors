@@ -395,7 +395,7 @@ func Retryable(err error) error {
 	return terr
 }
 
-// Retryable converts the error to a terror if necessary, and marks it as not retryable.
+// NotRetryable converts the error to a terror if necessary, and marks it as not retryable.
 func NotRetryable(err error) error {
 	if err == nil {
 		return nil
