@@ -117,10 +117,9 @@ func RateLimited(code, message string, params map[string]string) *Error {
 // Builds a stack based on the current call stack
 func errorFactory(code string, message string, params map[string]string) *Error {
 	err := &Error{
-		Code:         ErrUnknown,
-		Message:      message,
-		Params:       map[string]string{},
-		IsUnexpected: &notUnexpected,
+		Code:    ErrUnknown,
+		Message: message,
+		Params:  map[string]string{},
 	}
 	if len(code) > 0 {
 		err.Code = code
