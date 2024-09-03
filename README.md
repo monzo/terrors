@@ -48,6 +48,16 @@ When using the the wrapping functionality (e.g. `Wrap`, `Augment`, `Propagate`),
 of an error is preserved as expected. Importantly, it is also preserved when constructing a new error from
 a causal error with `NewInternalWithCause`.
 
+Wrap an error with `Retryable` or `NotRetryable` to set the retryability explicitly. This will
+override the retryability derived from the error code.
+
+```go
+retryableErr := terrors.Retryable(terrors.Augment(err, "didn't work, let's try again", nil))
+if terrors.IsRetryable(retryableErr) {
+	// retry the operation
+}
+```
+
 ## API
 
 Full API documentation can be found on

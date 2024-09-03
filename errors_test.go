@@ -214,6 +214,21 @@ func TestIsRetryable(t *testing.T) {
 	assert.False(t, IsRetryable(&testRetryableError{false}))
 	assert.True(t, IsRetryable(&testRetryableError{true}))
 	assert.True(t, IsRetryable(&testRetryableError{true}))
+
+	// Setting using convenience functions
+	assert.True(t, IsRetryable(Retryable(errors.New(""))))
+	assert.False(t, IsRetryable(NotRetryable(errors.New(""))))
+	assert.True(t, IsRetryable(Retryable(Augment(errors.New(""), "", nil))))
+	assert.False(t, IsRetryable(NotRetryable(Augment(errors.New(""), "", nil))))
+
+	// Overriding the default for error types using convenience functions
+	assert.True(t, IsRetryable(Retryable(BadRequest("", "", nil))))
+	assert.True(t, IsRetryable(Retryable(BadResponse("", "", nil))))
+	assert.True(t, IsRetryable(Retryable(NotFound("", "", nil))))
+	assert.True(t, IsRetryable(Retryable(PreconditionFailed("", "", nil))))
+	assert.True(t, IsRetryable(Retryable(NonRetryableInternalService("", "", nil))))
+	assert.False(t, IsRetryable(NotRetryable(InternalService("", "", nil))))
+	assert.False(t, IsRetryable(NotRetryable(RateLimited("", "", nil))))
 }
 
 type testRetryableError struct {

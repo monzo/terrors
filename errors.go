@@ -385,6 +385,28 @@ func IsRetryable(err error) bool {
 	return false
 }
 
+// Retryable converts the error to a terror if necessary, and marks it as retryable.
+func Retryable(err error) error {
+	if err == nil {
+		return nil
+	}
+	// Using propagate ensures the error can be converted to a terror
+	terr := Propagate(err).(*Error)
+	terr.SetIsRetryable(true)
+	return terr
+}
+
+// NotRetryable converts the error to a terror if necessary, and marks it as not retryable.
+func NotRetryable(err error) error {
+	if err == nil {
+		return nil
+	}
+	// Using propagate ensures the error can be converted to a terror
+	terr := Propagate(err).(*Error)
+	terr.SetIsRetryable(false)
+	return terr
+}
+
 // Augment adds context to an existing error.
 // If the error given is not already a terror, a new terror is created.
 func Augment(err error, context string, params map[string]string) error {
