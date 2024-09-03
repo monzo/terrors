@@ -575,7 +575,7 @@ func TestSetIsRetryable(t *testing.T) {
 
 func TestSetIsUnexpected(t *testing.T) {
 	err := New("code", "message", nil)
-	assert.False(t, *err.IsUnexpected)
+	assert.Nil(t, err.IsUnexpected)
 
 	err.SetIsUnexpected(true)
 	assert.True(t, *err.IsUnexpected)

@@ -218,7 +218,8 @@ func (p *Error) Retryable() bool {
 }
 
 // Unexpected states whether an error is not expected to occur. In many cases this will be due to a bug, e.g. due to a
-// defensive check failing
+// defensive check failing.
+// Note that if the IsUnexpected flag has not been set at all, this will still return false.
 func (p *Error) Unexpected() bool {
 	if p.IsUnexpected != nil {
 		return *p.IsUnexpected
