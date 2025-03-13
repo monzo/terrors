@@ -184,14 +184,14 @@ func TestMarshal(t *testing.T) {
 		assert.Equal(t, tc.platErr.MarshalCount+1, int(protoError.MarshalCount))
 
 		if tc.platErr.IsRetryable == nil {
-			assert.False(t, protoError.Retryable.Value)
+			assert.Nil(t, protoError.Retryable)
 		} else {
 			assert.Equal(t, *tc.platErr.IsRetryable, protoError.Retryable.Value)
 			assert.Equal(t, tc.protoErr.Retryable.Value, protoError.Retryable.Value)
 		}
 
 		if tc.platErr.IsUnexpected == nil {
-			assert.False(t, protoError.Unexpected.Value)
+			assert.Nil(t, protoError.Unexpected)
 		} else {
 			assert.Equal(t, *tc.platErr.IsUnexpected, protoError.Unexpected.Value)
 			assert.Equal(t, tc.protoErr.Unexpected.Value, protoError.Unexpected.Value)
@@ -200,6 +200,18 @@ func TestMarshal(t *testing.T) {
 		if tc.platErr.MessageChain != nil {
 			assert.Equal(t, tc.platErr.MessageChain, protoError.MessageChain)
 		}
+		t.Run("unmarshalling again keeps the same values", func(t *testing.T) {
+			roundTripped := Unmarshal(protoError)
+			// The `Code` can change (e.g. to "unknown") so we cannot assert on this
+			assert.Equal(t, tc.platErr.Message, roundTripped.Message)
+			assert.Equal(t, tc.platErr.MessageChain, roundTripped.MessageChain)
+
+			assert.EqualValues(t, tc.platErr.IsRetryable, roundTripped.IsRetryable)
+			assert.EqualValues(t, tc.platErr.IsUnexpected, roundTripped.IsUnexpected)
+
+			// The marshal count is incremented by 1 on every marshal
+			assert.Equal(t, tc.platErr.MarshalCount+1, roundTripped.MarshalCount)
+		})
 	}
 }
 
