@@ -15,30 +15,27 @@ func Marshal(e *Error) *pe.Error {
 		}
 	}
 
-	retryable := &pe.BoolValue{}
-	if e.IsRetryable != nil {
-		retryable.Value = *e.IsRetryable
-	}
-
-	unexpected := &pe.BoolValue{}
-	if e.IsUnexpected != nil {
-		unexpected.Value = *e.IsUnexpected
-	}
-
 	err := &pe.Error{
 		Code:         e.Code,
 		Message:      e.Message,
 		MessageChain: e.MessageChain,
 		Stack:        stackToProto(e.StackFrames),
 		Params:       e.Params,
-		Retryable:    retryable,
-		Unexpected:   unexpected,
+		Retryable:    boolValue(e.IsRetryable),
+		Unexpected:   boolValue(e.IsUnexpected),
 		MarshalCount: int32(e.MarshalCount + 1),
 	}
 	if err.Code == "" {
 		err.Code = ErrUnknown
 	}
 	return err
+}
+
+func boolValue(r *bool) *pe.BoolValue {
+	if r == nil {
+		return nil
+	}
+	return &pe.BoolValue{Value: *r}
 }
 
 // Unmarshal a protobuf error into a local error
