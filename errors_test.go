@@ -48,12 +48,15 @@ func TestErrorConstructors(t *testing.T) {
 		},
 		{
 			Unauthorized, "service.foo", "test params", map[string]string{
-				"some key":    "some value",
-				"another key": "another value",
-			}, ErrUnauthorized,
+			"some key":    "some value",
+			"another key": "another value",
+		}, ErrUnauthorized,
 		},
 		{
 			PreconditionFailed, "service.foo", "precondition_failed.service.foo", nil, ErrPreconditionFailed,
+		},
+		{
+			UnexpectedPreconditionFailed, "service.foo", "precondition_failed.service.foo", nil, ErrPreconditionFailed,
 		},
 		{
 			RateLimited, "service.foo", "rate_limited.service.foo", nil, ErrRateLimited,
@@ -530,34 +533,39 @@ func TestRetryable(t *testing.T) {
 
 func TestUnexpected(t *testing.T) {
 	cases := []struct {
-		name   string
-		terr   Error
-		expect bool
+		name string
+		terr *Error
+		want bool
 	}{
 		{
-			name:   "default",
-			terr:   Error{},
-			expect: false,
+			name: "default",
+			terr: &Error{},
+			want: false,
 		},
 		{
 			name: "unexpected",
-			terr: Error{
+			terr: &Error{
 				IsUnexpected: &unexpected,
 			},
-			expect: true,
+			want: true,
 		},
 		{
 			name: "not unexpected",
-			terr: Error{
+			terr: &Error{
 				IsUnexpected: &notUnexpected,
 			},
-			expect: false,
+			want: false,
+		},
+		{
+			name: "unexpected precondition failed",
+			terr: UnexpectedPreconditionFailed("code", "message", nil),
+			want: true,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(t.Name(), func(t *testing.T) {
-			assert.Equal(t, tc.expect, tc.terr.Unexpected())
+			assert.Equal(t, tc.want, tc.terr.Unexpected())
 		})
 	}
 }
