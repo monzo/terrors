@@ -604,6 +604,31 @@ func TestStackStringChasesCausalChain(t *testing.T) {
 	assert.Contains(t, ss, "failyFunction")
 }
 
+func TestMessageChainString(t *testing.T) {
+	t.Run("simple chain", func(t *testing.T) {
+		err := &Error{
+			Code:         ErrInternalService,
+			MessageChain: []string{"top-level", "cause"},
+		}
+		out := err.MessageChainString()
+		assert.Equal(t, "top-level -> cause", out)
+	})
+
+	t.Run("single message", func(t *testing.T) {
+		err := &Error{
+			Code:         ErrNotFound,
+			MessageChain: []string{"only one"},
+		}
+		out := err.MessageChainString()
+		assert.Equal(t, "only one", out)
+	})
+	
+	t.Run("nil error returns empty string", func(t *testing.T) {
+		var err *Error
+		assert.Equal(t, "", err.MessageChainString())
+	})
+}
+
 func TestCircularErrorProducesFiniteOutputWithStackFrames(t *testing.T) {
 	orig := failyFunction()
 	err := Augment(orig, "something may be up", nil)
