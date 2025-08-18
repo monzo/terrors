@@ -199,6 +199,15 @@ outer:
 	return buffer.String()
 }
 
+// MessageChainString returns a formatted string of the full message chain.
+// Each message in the chain is joined with " -> ".
+func (p *Error) MessageChainString() string {
+	if p == nil {
+		return ""
+	}
+	return strings.Join(p.MessageChain, " -> ")
+}
+
 // VerboseString returns the error message, stack trace and params
 func (p *Error) VerboseString() string {
 	return fmt.Sprintf("%s\nParams: %+v\n%s", p.Error(), p.Params, p.StackString())
