@@ -48,9 +48,9 @@ func TestErrorConstructors(t *testing.T) {
 		},
 		{
 			Unauthorized, "service.foo", "test params", map[string]string{
-			"some key":    "some value",
-			"another key": "another value",
-		}, ErrUnauthorized,
+				"some key":    "some value",
+				"another key": "another value",
+			}, ErrUnauthorized,
 		},
 		{
 			PreconditionFailed, "service.foo", "precondition_failed.service.foo", nil, ErrPreconditionFailed,
@@ -623,4 +623,15 @@ func TestCircularErrorProducesFiniteOutputWithoutStackFrames(t *testing.T) {
 	ss := terr.StackString()
 	// There's no actual stack in the causal cycle, so we don't render anything here.
 	assert.Empty(t, ss)
+}
+func TestIsEmptyCodeReturnsFalse(t *testing.T) {
+	// For any terror error, calling Is(err) with no codes should be false
+	err := InternalService("x", "msg", nil)
+	if Is(err) {
+		t.Errorf("expected Is(err) to be false when no codes provided")
+	}
+	err2 := NotFound("y", "msg", nil)
+	if Is(err2) {
+		t.Errorf("expected Is(err2) to be false when no codes provided")
+	}
 }

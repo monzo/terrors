@@ -437,6 +437,9 @@ func Propagate(err error) error {
 // signature requires an error to test against, and checking against terrors would
 // requite creating a new terror with the specific code.
 func Is(err error, code ...string) bool {
+	if len(code) == 0 {
+		return false
+	}
 	switch err := err.(type) {
 	case *Error:
 		if err.PrefixMatches(code...) {
