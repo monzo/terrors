@@ -1,0 +1,20 @@
+{
+  "code": "internal_service.banana",
+  "message": "I am a banana",
+  "stack": [
+    {
+      "filename": "github.com/monzo/terrors/stack_propagation_test.go",
+      "line": 88,
+      "method": "terrors_test.rpcHandler"
+    },
+    {
+      "filename": "github.com/monzo/terrors/stack_propagation_test.go",
+      "line": 83,
+      "method": "terrors_test.rpcCallee"
+    }
+  ],
+  "retryable": {
+    "value": true
+  },
+  "marshal_count": 1
+}

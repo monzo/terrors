@@ -48,9 +48,9 @@ func TestErrorConstructors(t *testing.T) {
 		},
 		{
 			Unauthorized, "service.foo", "test params", map[string]string{
-			"some key":    "some value",
-			"another key": "another value",
-		}, ErrUnauthorized,
+				"some key":    "some value",
+				"another key": "another value",
+			}, ErrUnauthorized,
 		},
 		{
 			PreconditionFailed, "service.foo", "precondition_failed.service.foo", nil, ErrPreconditionFailed,
