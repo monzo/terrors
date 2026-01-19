@@ -3,7 +3,9 @@ package terrors
 import (
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -602,6 +604,30 @@ func TestStackStringChasesCausalChain(t *testing.T) {
 	ss := terr.StackString()
 	t.Log(ss)
 	assert.Contains(t, ss, "failyFunction")
+}
+
+func TestStackStringSegmentsCausalChain(t *testing.T) {
+	a := failyFunction().(*Error)
+	a.StackFrames = stack.Stack{
+		{Filename: "foo.go", Line: 42, Method: "Foo"},
+	}
+	err := Augment(a, "something may be up", nil)
+	terr := err.(*Error)
+	terr.StackFrames = stack.Stack{
+		{Filename: "bar.go", Line: 43, Method: "Bar"},
+	}
+
+	ss := terr.StackString()
+	t.Log(ss)
+
+	segments := strings.Split(ss, stackChainSeparator)
+	require.Len(t, segments, 2)
+
+	// The outermost stackframes should be at the start
+	assert.Contains(t, segments[0], "bar.go")
+
+	// Then the inner stackframes
+	assert.Contains(t, segments[1], "foo.go")
 }
 
 func TestCircularErrorProducesFiniteOutputWithStackFrames(t *testing.T) {

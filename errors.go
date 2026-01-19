@@ -64,6 +64,8 @@ var retryableCodes = []string{
 	ErrRateLimited,
 }
 
+const stackChainSeparator = "---"
+
 // Error is terror's error. It implements Go's error interface.
 type Error struct {
 	Code        string            `json:"code"`
@@ -177,7 +179,7 @@ func StackStringWithMaxSize(p *Error, sizeLimit int) string {
 outer:
 	for terr != nil {
 		if buffer.Len() != 0 && len(terr.StackFrames) > 0 {
-			fmt.Fprintf(&buffer, "\n---")
+			fmt.Fprintf(&buffer, "\n%s", stackChainSeparator)
 		}
 		for _, frame := range terr.StackFrames {
 			// 10 seems like a reasonable estimate of how large the rest of the line would be.
