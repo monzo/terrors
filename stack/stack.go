@@ -73,6 +73,29 @@ func (s Stack) Fingerprint() string {
 	return fmt.Sprintf("%x", hash.Sum32())
 }
 
+func (s Stack) HasRoot(otherRoot Stack) bool {
+	startIdx := len(s) - len(otherRoot)
+	if startIdx < 0 {
+		return false
+	}
+
+	root := s[startIdx:]
+
+	for i, thisFrame := range root {
+		otherFrame := otherRoot[i]
+
+		// All of the frame information is derived from the program counter, so it's safe
+		// to compare that alone. We also assume that a program counter of zero means it
+		// is remote, since a) we don't currently transfer that value because it doesn't
+		// make sense outside of that processes's address space, and b) there are no
+		// instructions mapped at address zero.
+		if otherFrame.PC == 0 || thisFrame.PC != otherFrame.PC {
+			return false
+		}
+	}
+	return true
+}
+
 // Remove un-needed information from the source file path. This makes them
 // shorter in Rollbar UI as well as making them the same, regardless of the
 // machine the code was compiled on.

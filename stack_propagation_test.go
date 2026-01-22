@@ -19,7 +19,6 @@ import (
 // a) we have an error in a child goroutine and handle it in a parent (eg: from a waitgroup)
 // b) we have an error in a different process (eg: via RPC) and it gets propagated to the child
 func TestStackTraceCrossGoRoutinePropagation(t *testing.T) {
-	t.Skip("TODO")
 	err := errorCanaryParentA()
 
 	var terr *terrors.Error
@@ -32,7 +31,6 @@ func TestStackTraceCrossGoRoutinePropagation(t *testing.T) {
 }
 
 func TestStackTraceCrossProcessPropagation(t *testing.T) {
-	t.Skip("TODO")
 	err := rpcCaller()
 
 	var terr *terrors.Error
@@ -43,8 +41,6 @@ func TestStackTraceCrossProcessPropagation(t *testing.T) {
 	assert.Contains(t, stack, "rpcCaller")
 	assert.Contains(t, stack, "rpcCallee")
 	assert.Contains(t, stack, "rpcHandler")
-
-	t.Skip("TODO")
 }
 
 func errorCanaryParentA() error {

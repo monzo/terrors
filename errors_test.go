@@ -274,12 +274,40 @@ func TestAugmentTerror(t *testing.T) {
 		"new": "meta",
 	})
 	terr := newErr.(*Error)
+
+	t.Logf("Stack: %s", terr.VerboseString())
 	assert.Equal(t, "not_found.foo", terr.Code)
 	assert.Equal(t, "added context", terr.Message)
-	assert.Empty(t, terr.StackFrames)
 
 	assert.Equal(t, "not_found.foo: added context: failed to find foo", terr.Error())
 	assert.Equal(t, base, terr.cause)
+}
+
+func TestAugmentTerrorDoesNotRepeatStackTrace(t *testing.T) {
+	base := NotFound("foo", "failed to find foo", map[string]string{
+		"base": "meta",
+	})
+	var newErr error = base
+	for i := 0; i < 10; i += 1 {
+		newErr = Augment(newErr, "added context", map[string]string{
+			"new": "meta",
+		})
+	}
+	terr := newErr.(*Error)
+
+	t.Logf("%s", terr.VerboseString())
+
+	segments := strings.Split(terr.StackString(), stackChainSeparator)
+
+	segmentCounts := map[string]int{}
+	for _, seg := range segments {
+		segmentCounts[seg] += 1
+	}
+
+	require.NotEmpty(t, segmentCounts)
+	for seg, count := range segmentCounts {
+		assert.Equal(t, 1, count, "Segment repeated more than once: %s", seg)
+	}
 }
 
 func TestAugmentTerrorWithWrap(t *testing.T) {
@@ -641,12 +669,4 @@ func TestCircularErrorProducesFiniteOutputWithStackFrames(t *testing.T) {
 	// The default field size limit used in elastic-slog. It's kind of arbitrary, but it'll do for now.
 	assert.Less(t, len(ss), 32000)
 	assert.GreaterOrEqual(t, len(ss), 32000-1000)
-}
-func TestCircularErrorProducesFiniteOutputWithoutStackFrames(t *testing.T) {
-	err := Augment(failyFunction(), "something may be up", nil)
-	terr := err.(*Error)
-	terr.cause = terr
-	ss := terr.StackString()
-	// There's no actual stack in the causal cycle, so we don't render anything here.
-	assert.Empty(t, ss)
 }

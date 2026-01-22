@@ -345,6 +345,23 @@ func (p *Error) PrefixMatches(prefixParts ...string) bool {
 	return strings.HasPrefix(p.Code, prefix)
 }
 
+func (p *Error) hasCommonStackRoot(root stack.Stack) bool {
+	// find the nearest causative error with a stacktrace
+	terr := p
+	for {
+		if len(terr.StackFrames) > 0 {
+			break
+		}
+		if next, ok := terr.cause.(*Error); ok {
+			terr = next
+		} else {
+			return false
+		}
+	}
+
+	return terr.StackFrames.HasRoot(root)
+}
+
 // Matches returns true if the error is a terror error and the string returned from error.Error() contains the given
 // param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
 // `bad_request.missing_param` or even on the more descriptive message
@@ -397,12 +414,18 @@ func Augment(err error, context string, params map[string]string) error {
 	case *Error:
 		withMergedParams := addParams(err, params)
 		// The underlying terror will already have a stack, so we don't take a new trace here.
+		var stackFrames stack.Stack
+		currentStack := stack.BuildStack(2)
+		if !err.hasCommonStackRoot(currentStack) {
+			stackFrames = currentStack
+		}
+
 		return &Error{
 			Code:         err.Code,
 			Message:      context,
 			MessageChain: append([]string{err.Message}, err.MessageChain...),
 			Params:       withMergedParams.Params,
-			StackFrames:  stack.Stack{},
+			StackFrames:  stackFrames,
 			IsRetryable:  err.IsRetryable,
 			IsUnexpected: err.IsUnexpected,
 			MarshalCount: err.MarshalCount,
