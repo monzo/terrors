@@ -81,9 +81,24 @@ func (s Stack) HasRoot(otherRoot Stack) bool {
 
 	root := s[startIdx:]
 
-	for i, thisFrame := range root[0:] {
-		otherFrame := otherRoot[i]
+	if len(root) == 0 {
+		return true
+	}
 
+	// Special case the frame where we call terrors.Augment, because for cases like the following:
+	//
+	//   err := something();
+	//   if err != nil {
+	//   	return terrors.Augment(err, "context", nil()
+	//   }
+	//
+	// Just comparing the program counter isn't enough, because while yes, the calls
+	// to something() and terrors.Augment() are at different points, we still want to
+	// consider them as the "same" stack frame. So we fall back to comparing the file
+	// and method names too.
+	{
+		thisFrame := root[0]
+		otherFrame := otherRoot[0]
 		//  We also assume that a program counter of zero means it
 		// is remote, since a) we don't currently transfer that value because it doesn't
 		// make sense outside of that processes's address space, and b) there are no
@@ -92,19 +107,22 @@ func (s Stack) HasRoot(otherRoot Stack) bool {
 			return false
 		}
 
-		// if the program counter values are the same, then that's fine, and we can be
-		// sure that the frames are equal. However, for cases like the following:
-		//
-		//   err := something();
-		//   if err != nil {
-		//   	return terrors.Augment(err, "context", nil()
-		//   }
-		//
-		// Just comparing the program counter isn't enough, because while yes, the calls
-		// to something() and terrors.Augment() are at different points, we still want to
-		// consider them as the "same" stack frame. So we fall back to comparing the file
-		// and method names too.
 		if thisFrame.PC != otherFrame.PC && thisFrame.Filename != otherFrame.Filename && thisFrame.Method != otherFrame.Method {
+			return false
+		}
+	}
+	root = root[1:]
+	otherRoot = otherRoot[1:]
+
+	for i, thisFrame := range root {
+		otherFrame := otherRoot[i]
+
+		if otherFrame.PC == 0 {
+			return false
+		}
+
+		// if the program counter values are the same, then that's fine, and all we need to care about for frames above the caller of terrors.Augment
+		if thisFrame.PC != otherFrame.PC {
 			return false
 		}
 	}
