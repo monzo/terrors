@@ -284,30 +284,24 @@ func TestAugmentTerror(t *testing.T) {
 }
 
 func TestAugmentTerrorDoesNotRepeatStackTrace(t *testing.T) {
-	base := NotFound("foo", "failed to find foo", map[string]string{
-		"base": "meta",
+	newErr := failingChildFunction()
+
+	newErr = Augment(newErr, "added context", map[string]string{
+		"new": "meta",
 	})
-	var newErr error = base
-	for i := 0; i < 10; i += 1 {
-		newErr = Augment(newErr, "added context", map[string]string{
-			"new": "meta",
-		})
-	}
 	terr := newErr.(*Error)
 
 	t.Logf("%s", terr.VerboseString())
 
 	segments := strings.Split(terr.StackString(), stackChainSeparator)
 
-	segmentCounts := map[string]int{}
-	for _, seg := range segments {
-		segmentCounts[seg] += 1
-	}
+	assert.Len(t, segments, 1)
+}
 
-	require.NotEmpty(t, segmentCounts)
-	for seg, count := range segmentCounts {
-		assert.Equal(t, 1, count, "Segment repeated more than once: %s", seg)
-	}
+func failingChildFunction() error {
+	return NotFound("foo", "failed to find foo", map[string]string{
+		"base": "meta",
+	})
 }
 
 func TestAugmentTerrorWithWrap(t *testing.T) {

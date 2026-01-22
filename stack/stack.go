@@ -81,15 +81,30 @@ func (s Stack) HasRoot(otherRoot Stack) bool {
 
 	root := s[startIdx:]
 
-	for i, thisFrame := range root {
+	for i, thisFrame := range root[0:] {
 		otherFrame := otherRoot[i]
 
-		// All of the frame information is derived from the program counter, so it's safe
-		// to compare that alone. We also assume that a program counter of zero means it
+		//  We also assume that a program counter of zero means it
 		// is remote, since a) we don't currently transfer that value because it doesn't
 		// make sense outside of that processes's address space, and b) there are no
 		// instructions mapped at address zero.
-		if otherFrame.PC == 0 || thisFrame.PC != otherFrame.PC {
+		if otherFrame.PC == 0 {
+			return false
+		}
+
+		// if the program counter values are the same, then that's fine, and we can be
+		// sure that the frames are equal. However, for cases like the following:
+		//
+		//   err := something();
+		//   if err != nil {
+		//   	return terrors.Augment(err, "context", nil()
+		//   }
+		//
+		// Just comparing the program counter isn't enough, because while yes, the calls
+		// to something() and terrors.Augment() are at different points, we still want to
+		// consider them as the "same" stack frame. So we fall back to comparing the file
+		// and method names too.
+		if thisFrame.PC != otherFrame.PC && thisFrame.Filename != otherFrame.Filename && thisFrame.Method != otherFrame.Method {
 			return false
 		}
 	}
@@ -101,8 +116,9 @@ func (s Stack) HasRoot(otherRoot Stack) bool {
 // machine the code was compiled on.
 //
 // Examples:
-//   /usr/local/go/src/pkg/runtime/proc.c -> pkg/runtime/proc.c
-//   /home/foo/go/src/github.com/rollbar/rollbar.go -> github.com/rollbar/rollbar.go
+//
+//	/usr/local/go/src/pkg/runtime/proc.c -> pkg/runtime/proc.c
+//	/home/foo/go/src/github.com/rollbar/rollbar.go -> github.com/rollbar/rollbar.go
 func shortenFilePath(s string) string {
 	idx := strings.Index(s, "/src/pkg/")
 	if idx != -1 {
