@@ -73,7 +73,7 @@ func (s Stack) Fingerprint() string {
 	return fmt.Sprintf("%x", hash.Sum32())
 }
 
-func (s Stack) HasRoot(otherRoot Stack) bool {
+func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
 	startIdx := len(s) - len(otherRoot)
 	if startIdx < 0 {
 		return false
@@ -99,10 +99,10 @@ func (s Stack) HasRoot(otherRoot Stack) bool {
 	{
 		thisFrame := root[0]
 		otherFrame := otherRoot[0]
-		//  We also assume that a program counter of zero means it
-		// is remote, since a) we don't currently transfer that value because it doesn't
-		// make sense outside of that processes's address space, and b) there are no
-		// instructions mapped at address zero.
+		// We also assume that a program counter of zero means it is remote, since a) we
+		// don't currently transfer that value over the wire (see the protobuf
+		// representations for details), and b) there are no instructions mapped at
+		// address zero.
 		if otherFrame.PC == 0 {
 			return false
 		}

@@ -345,7 +345,7 @@ func (p *Error) PrefixMatches(prefixParts ...string) bool {
 	return strings.HasPrefix(p.Code, prefix)
 }
 
-func (p *Error) hasCommonStackRoot(root stack.Stack) bool {
+func (p *Error) hasCommonStackAncestry(root stack.Stack) bool {
 	// find the nearest causative error with a stacktrace
 	terr := p
 	for {
@@ -359,7 +359,7 @@ func (p *Error) hasCommonStackRoot(root stack.Stack) bool {
 		}
 	}
 
-	return terr.StackFrames.HasRoot(root)
+	return terr.StackFrames.HasCommonAncestry(root)
 }
 
 // Matches returns true if the error is a terror error and the string returned from error.Error() contains the given
@@ -419,7 +419,7 @@ func Augment(err error, context string, params map[string]string) error {
 		// the current context.
 		var stackFrames stack.Stack
 		currentStack := stack.BuildStack(2)
-		if !err.hasCommonStackRoot(currentStack) {
+		if !err.hasCommonStackAncestry(currentStack) {
 			stackFrames = currentStack
 		}
 
