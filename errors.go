@@ -413,7 +413,10 @@ func Augment(err error, context string, params map[string]string) error {
 	switch err := err.(type) {
 	case *Error:
 		withMergedParams := addParams(err, params)
-		// The underlying terror will already have a stack, so we don't take a new trace here.
+		// If we know that the current stack has a common root with the already captured
+		// stack, then we know that the existing terror already captures our context.
+		// However, if it doesn't, we need to decorate the terror with the stacktrace for
+		// the current context.
 		var stackFrames stack.Stack
 		currentStack := stack.BuildStack(2)
 		if !err.hasCommonStackRoot(currentStack) {
