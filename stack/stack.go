@@ -96,39 +96,46 @@ func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
 	// to something() and terrors.Augment() are at different points, we still want to
 	// consider them as the "same" stack frame. So we fall back to comparing the file
 	// and method names too.
-	{
-		thisFrame := s[0]
-		otherFrame := other[0]
-		// We also assume that a program counter of zero means it is remote, since a) we
-		// don't currently transfer that value over the wire (see the protobuf
-		// representations for details), and b) there are no instructions mapped at
-		// address zero.
-		if otherFrame.PC == 0 {
-			return false
-		}
-
-		if thisFrame.PC == otherFrame.PC {
-			// This is fine
-		} else if thisFrame.Filename != otherFrame.Filename || thisFrame.Method != otherFrame.Method {
-			return false
-		}
+	if !equalByFunctionName(other[0], s[0]) {
+		return false
 	}
+
 	thisRemaining := s[1:]
 	otherRemaining := other[1:]
 
 	for i, thisFrame := range thisRemaining {
-		otherFrame := otherRemaining[i]
-
-		if otherFrame.PC == 0 {
-			return false
-		}
-
-		// if the program counter values are the same, then that's fine, and all we need to care about for frames above the caller of terrors.Augment
-		if thisFrame.PC != otherFrame.PC {
+		if !equalByPC(otherRemaining[i], thisFrame) {
 			return false
 		}
 	}
 	return true
+}
+
+func equalByFunctionName(otherFrame *Frame, thisFrame *Frame) bool {
+	// We also assume that a program counter of zero means it is remote, since a) we
+	// don't currently transfer that value over the wire (see the protobuf
+	// representations for details), and b) there are no instructions mapped at
+	// address zero.
+	if otherFrame.PC == 0 {
+		return true
+	}
+
+	if thisFrame.PC == otherFrame.PC {
+		return true
+	} else if thisFrame.Filename == otherFrame.Filename && thisFrame.Method == otherFrame.Method {
+		return true
+	}
+	return false
+}
+
+func equalByPC(otherFrame *Frame, thisFrame *Frame) bool {
+	// A frame from a remote source; can't match a locally generated stack
+	if otherFrame.PC == 0 {
+		return false
+	}
+
+	// if the program counter values are the same, then that's fine, and all we need to care about for frames above the caller of terrors.Augment
+	return thisFrame.PC == otherFrame.PC
 }
 
 func (s Stack) String() string {
