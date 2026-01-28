@@ -64,6 +64,8 @@ var retryableCodes = []string{
 	ErrRateLimited,
 }
 
+const stackChainSeparator = "---"
+
 // Error is terror's error. It implements Go's error interface.
 type Error struct {
 	Code        string            `json:"code"`
@@ -176,16 +178,13 @@ func StackStringWithMaxSize(p *Error, sizeLimit int) string {
 	var causalDepth int
 outer:
 	for terr != nil {
-		if buffer.Len() != 0 && len(terr.StackFrames) > 0 {
-			fmt.Fprintf(&buffer, "\n---")
+		s := terr.StackFrames
+		if buffer.Len() != 0 && len(s) > 0 {
+			fmt.Fprintf(&buffer, "\n%s", stackChainSeparator)
 		}
-		for _, frame := range terr.StackFrames {
-			// 10 seems like a reasonable estimate of how large the rest of the line would be.
-			estimatedLineLen := len(frame.Filename) + len(frame.Method) + 16
-			if estimatedLineLen+buffer.Len() > sizeLimit {
-				break outer
-			}
-			fmt.Fprintf(&buffer, "\n  %s:%d in %s", frame.Filename, frame.Line, frame.Method)
+
+		if s.WriteWithMaxSize(&buffer, sizeLimit) {
+			break
 		}
 
 		if tcause, ok := terr.cause.(*Error); ok && causalDepth < maxCausalDepth {
@@ -343,6 +342,24 @@ func (p *Error) PrefixMatches(prefixParts ...string) bool {
 	return strings.HasPrefix(p.Code, prefix)
 }
 
+func (p *Error) hasCommonStackAncestry(currentRoot stack.Stack) bool {
+	// find the nearest causative error with a stacktrace
+	terr := p
+	for {
+		if len(terr.StackFrames) > 0 {
+			break
+		}
+		if next, ok := terr.cause.(*Error); ok {
+			terr = next
+		} else {
+			return false
+		}
+	}
+
+	// does our current stacktrace have a common ancestry with the terror being augmented?
+	return currentRoot.HasCommonAncestry(terr.StackFrames)
+}
+
 // Matches returns true if the error is a terror error and the string returned from error.Error() contains the given
 // param string. This means you can match the error on different levels e.g. dotted codes `bad_request` or
 // `bad_request.missing_param` or even on the more descriptive message
@@ -394,13 +411,22 @@ func Augment(err error, context string, params map[string]string) error {
 	switch err := err.(type) {
 	case *Error:
 		withMergedParams := addParams(err, params)
-		// The underlying terror will already have a stack, so we don't take a new trace here.
+		// If we know that the current stack has a common root with the already captured
+		// stack, then we know that the existing terror already captures our context.
+		// However, if it doesn't, we need to decorate the terror with the stacktrace for
+		// the current context.
+		var stackFrames stack.Stack
+		currentStack := stack.BuildStack(2)
+		if !err.hasCommonStackAncestry(currentStack) {
+			stackFrames = currentStack
+		}
+
 		return &Error{
 			Code:         err.Code,
 			Message:      context,
 			MessageChain: append([]string{err.Message}, err.MessageChain...),
 			Params:       withMergedParams.Params,
-			StackFrames:  stack.Stack{},
+			StackFrames:  stackFrames,
 			IsRetryable:  err.IsRetryable,
 			IsUnexpected: err.IsUnexpected,
 			MarshalCount: err.MarshalCount,

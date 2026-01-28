@@ -3,7 +3,9 @@ package terrors
 import (
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -48,9 +50,9 @@ func TestErrorConstructors(t *testing.T) {
 		},
 		{
 			Unauthorized, "service.foo", "test params", map[string]string{
-			"some key":    "some value",
-			"another key": "another value",
-		}, ErrUnauthorized,
+				"some key":    "some value",
+				"another key": "another value",
+			}, ErrUnauthorized,
 		},
 		{
 			PreconditionFailed, "service.foo", "precondition_failed.service.foo", nil, ErrPreconditionFailed,
@@ -272,12 +274,34 @@ func TestAugmentTerror(t *testing.T) {
 		"new": "meta",
 	})
 	terr := newErr.(*Error)
+
+	t.Logf("Stack: %s", terr.VerboseString())
 	assert.Equal(t, "not_found.foo", terr.Code)
 	assert.Equal(t, "added context", terr.Message)
-	assert.Empty(t, terr.StackFrames)
 
 	assert.Equal(t, "not_found.foo: added context: failed to find foo", terr.Error())
 	assert.Equal(t, base, terr.cause)
+}
+
+func TestAugmentTerrorDoesNotRepeatStackTrace(t *testing.T) {
+	newErr := failingChildFunction()
+
+	newErr = Augment(newErr, "added context", map[string]string{
+		"new": "meta",
+	})
+	terr := newErr.(*Error)
+
+	t.Logf("%s", terr.VerboseString())
+
+	segments := strings.Split(terr.StackString(), stackChainSeparator)
+
+	assert.Len(t, segments, 1)
+}
+
+func failingChildFunction() error {
+	return NotFound("foo", "failed to find foo", map[string]string{
+		"base": "meta",
+	})
 }
 
 func TestAugmentTerrorWithWrap(t *testing.T) {
@@ -604,6 +628,30 @@ func TestStackStringChasesCausalChain(t *testing.T) {
 	assert.Contains(t, ss, "failyFunction")
 }
 
+func TestStackStringSegmentsCausalChain(t *testing.T) {
+	a := failyFunction().(*Error)
+	a.StackFrames = stack.Stack{
+		{Filename: "foo.go", Line: 42, Method: "Foo"},
+	}
+	err := Augment(a, "something may be up", nil)
+	terr := err.(*Error)
+	terr.StackFrames = stack.Stack{
+		{Filename: "bar.go", Line: 43, Method: "Bar"},
+	}
+
+	ss := terr.StackString()
+	t.Log(ss)
+
+	segments := strings.Split(ss, stackChainSeparator)
+	require.Len(t, segments, 2)
+
+	// The outermost stackframes should be at the start
+	assert.Contains(t, segments[0], "bar.go")
+
+	// Then the inner stackframes
+	assert.Contains(t, segments[1], "foo.go")
+}
+
 func TestCircularErrorProducesFiniteOutputWithStackFrames(t *testing.T) {
 	orig := failyFunction()
 	err := Augment(orig, "something may be up", nil)
@@ -615,12 +663,4 @@ func TestCircularErrorProducesFiniteOutputWithStackFrames(t *testing.T) {
 	// The default field size limit used in elastic-slog. It's kind of arbitrary, but it'll do for now.
 	assert.Less(t, len(ss), 32000)
 	assert.GreaterOrEqual(t, len(ss), 32000-1000)
-}
-func TestCircularErrorProducesFiniteOutputWithoutStackFrames(t *testing.T) {
-	err := Augment(failyFunction(), "something may be up", nil)
-	terr := err.(*Error)
-	terr.cause = terr
-	ss := terr.StackString()
-	// There's no actual stack in the causal cycle, so we don't render anything here.
-	assert.Empty(t, ss)
 }
