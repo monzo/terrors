@@ -117,9 +117,52 @@ func TestCommonAncestryShouldNotMatchWhenOurOtherStackFrameIsDeeper(t *testing.T
 	assertHasNoCommonAncestry(t, current, other)
 }
 
-// TODO: Similar cases to the common cases above, but force no-match by having zeroed PCs
+// Our terrors proto does not include the PC, so we can assume any "other" stack with zeroed PCs is remote
+func TestCommonAncestryShouldNotMatchWithSameStackButZeroedOtherPCs(t *testing.T) {
+	current := Stack{{PC: 1, Method: "one"}, {PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+	other := Stack{{PC: 0, Method: "one"}, {PC: 0, Method: "two"}, {PC: 0, Method: "three"}}
 
-// TODO: Similar cases to the common cases above, but force no-match by mutating either method, line or filename
+	assertHasNoCommonAncestry(t, current, other)
+}
+
+func TestCommonAncestryShouldNotMatchWhenOtherStackFrameIsDeeperButHasZeroedPcs(t *testing.T) {
+	// Ie: The other stack trace is from a callee
+	current := Stack{{PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+	other := Stack{{PC: 0, Method: "one"}, {PC: 0, Method: "two"}, {PC: 0, Method: "three"}}
+
+	assertHasNoCommonAncestry(t, current, other)
+}
+
+// For the top frame we also match on filename and method, so verify chat changing these results in a non-match
+func TestCommonAncestryShouldNotMatchWithSameStackExceptDifferentTopMethodName(t *testing.T) {
+	current := Stack{{PC: 1, Method: "one", Filename: "foo.go"}, {PC: 2, Method: "two", Filename: "bar.go"}, {PC: 3, Method: "three", Filename: "baz.go"}}
+	other := Stack{{PC: 11, Method: "notOne", Filename: "foo.go"}, {PC: 2, Method: "two", Filename: "bar.go"}, {PC: 3, Method: "three", Filename: "baz.go"}}
+
+	assertHasNoCommonAncestry(t, current, other)
+}
+
+func TestCommonAncestryShouldNotMatchWhenOtherStackFrameIsDeeperDifferentTopMethodName(t *testing.T) {
+	// Ie: The other stack trace is from a callee
+	current := Stack{{PC: 2, Method: "two", Filename: "bar.go"}, {PC: 3, Method: "three", Filename: "baz.go"}}
+	other := Stack{{PC: 1, Method: "one"}, {PC: 12, Method: "notTwo", Filename: "bar.go"}, {PC: 3, Method: "three", Filename: "baz.go"}}
+
+	assertHasNoCommonAncestry(t, current, other)
+}
+
+func TestCommonAncestryShouldNotMatchWithSameStackButDifferentTopFileName(t *testing.T) {
+	current := Stack{{PC: 1, Method: "one", Filename: "foo.go"}, {PC: 2, Method: "two", Filename: "bar.go"}, {PC: 3, Method: "three", Filename: "baz.go"}}
+	other := Stack{{PC: 11, Method: "one", Filename: "not/foo.go"}, {PC: 2, Method: "two", Filename: "bar.go"}, {PC: 3, Method: "three", Filename: "baz.go"}}
+
+	assertHasNoCommonAncestry(t, current, other)
+}
+
+func TestCommonAncestryShouldNotMatchWhenOtherStackFrameIsDeeperDifferentTopFileName(t *testing.T) {
+	// Ie: The other stack trace is from a callee
+	current := Stack{{PC: 2, Method: "two", Filename: "bar.go"}, {PC: 3, Method: "three", Filename: "baz.go"}}
+	other := Stack{{PC: 1, Method: "one"}, {PC: 12, Method: "two", Filename: "not/bar.go"}, {PC: 3, Method: "three", Filename: "baz.go"}}
+
+	assertHasNoCommonAncestry(t, current, other)
+}
 
 func assertHasCommonAncestry(t *testing.T, current Stack, other Stack) bool {
 	return assert.True(t, current.HasCommonAncestry(other), "Stack current has common ancestry with other: current:%v\nother:%v\n", current, other)
