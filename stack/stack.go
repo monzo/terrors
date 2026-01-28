@@ -129,6 +129,26 @@ func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
 	return true
 }
 
+func (s Stack) String() string {
+	var buf strings.Builder
+	s.WriteWithMaxSize(&buf, 32000)
+	return buf.String()
+}
+
+// WriteWithMaxSize writes the stack to the provided buffer, not going above
+func (s Stack) WriteWithMaxSize(buffer *strings.Builder, sizeLimit int) bool {
+	for _, frame := range s {
+		// 10 seems like a reasonable estimate of how large the rest of the line would be.
+		estimatedLineLen := len(frame.Filename) + len(frame.Method) + 16
+		if estimatedLineLen+buffer.Len() > sizeLimit {
+			return true
+		}
+		fmt.Fprintf(buffer, "\n  %s:%d in %s", frame.Filename, frame.Line, frame.Method)
+	}
+
+	return false
+}
+
 // Remove un-needed information from the source file path. This makes them
 // shorter in Rollbar UI as well as making them the same, regardless of the
 // machine the code was compiled on.
