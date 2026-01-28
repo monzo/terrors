@@ -96,7 +96,7 @@ func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
 	// to something() and terrors.Augment() are at different points, we still want to
 	// consider them as the "same" stack frame. So we fall back to comparing the file
 	// and method names too.
-	if !equalByFunctionName(other[0], s[0]) {
+	if !topFrameEqualByFunctionName(other[0], s[0]) {
 		return false
 	}
 
@@ -111,13 +111,13 @@ func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
 	return true
 }
 
-func equalByFunctionName(otherFrame *Frame, thisFrame *Frame) bool {
-	// We also assume that a program counter of zero means it is remote, since a) we
-	// don't currently transfer that value over the wire (see the protobuf
-	// representations for details), and b) there are no instructions mapped at
-	// address zero.
+func topFrameEqualByFunctionName(otherFrame *Frame, thisFrame *Frame) bool {
+	// We also assume that a program counter of zero means it is remote, and thus
+	// never equal to a local frame, since a) we don't currently transfer that value
+	// over the wire (see the protobuf representations for details), and b) there are
+	// no instructions mapped at address zero.
 	if otherFrame.PC == 0 {
-		return true
+		return false
 	}
 
 	if thisFrame.PC == otherFrame.PC {

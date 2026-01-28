@@ -125,6 +125,13 @@ func TestCommonAncestryShouldNotMatchWithSameStackButZeroedOtherPCs(t *testing.T
 	assertHasNoCommonAncestry(t, current, other)
 }
 
+func TestCommonAncestryShouldNotMatchWithVeryShortStackButZeroedOtherPCs(t *testing.T) {
+	current := Stack{{PC: 1, Method: "one"}}
+	other := Stack{{PC: 0, Method: "one"}}
+
+	assertHasNoCommonAncestry(t, current, other)
+}
+
 func TestCommonAncestryShouldNotMatchWhenOtherStackFrameIsDeeperButHasZeroedPcs(t *testing.T) {
 	// Ie: The other stack trace is from a callee
 	current := Stack{{PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
