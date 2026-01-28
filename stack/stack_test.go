@@ -64,3 +64,45 @@ func TestShortenFilePath(t *testing.T) {
 		}
 	}
 }
+
+func TestCommonAncestrySamePCShouldMatch(t *testing.T) {
+	current := Stack{{PC: 1, Method: "one"}, {PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+	other := Stack{{PC: 1, Method: "one"}, {PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+
+	assertHasCommonAncestry(t, current, other)
+}
+
+func TestCommonAncestryDifferingRootPCShouldNotMatch(t *testing.T) {
+	current := Stack{{PC: 1, Method: "one"}, {PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+	other := Stack{{PC: 1, Method: "one"}, {PC: 2, Method: "two"}, {PC: 4, Method: "four"}}
+
+	assertHasNoCommonAncestry(t, current, other)
+}
+
+func TestCommonAncestryDifferingPcInTopFrameButSameMethodShouldMatch(t *testing.T) {
+	current := Stack{{PC: 1, Method: "one"}, {PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+	other := Stack{{PC: 4, Method: "one"}, {PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+
+	assertHasCommonAncestry(t, current, other)
+}
+
+func TestCommonAncestrySamePCExtraFrameLeftShouldNotMatch(t *testing.T) {
+	current := Stack{{PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+	other := Stack{{PC: 1, Method: "one"}, {PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+
+	assertHasNoCommonAncestry(t, current, other)
+}
+
+func TestCommonAncestrySamePCExtraFrameRightShouldMatch(t *testing.T) {
+	current := Stack{{PC: 1, Method: "one"}, {PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+	other := Stack{{PC: 2, Method: "two"}, {PC: 3, Method: "three"}}
+
+	assertHasCommonAncestry(t, current, other)
+}
+
+func assertHasCommonAncestry(t *testing.T, current Stack, other Stack) bool {
+	return assert.True(t, current.HasCommonAncestry(other), "Stack current has common ancestry with other: current:%v\nother:%v\n", current, other)
+}
+func assertHasNoCommonAncestry(t *testing.T, current Stack, other Stack) bool {
+	return assert.False(t, current.HasCommonAncestry(other), "Stack current should not have common ancestry with other: current:%v\nother:%v\n", current, other)
+}

@@ -107,6 +107,7 @@ func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
 			return false
 		}
 
+		// should be thisFrame.PC != otherFrame.PC || (thisFrame.Filename != otherFrame.Filename && thisFrame.Method != otherFrame.Method)
 		if thisFrame.PC != otherFrame.PC && thisFrame.Filename != otherFrame.Filename && thisFrame.Method != otherFrame.Method {
 			return false
 		}
@@ -143,7 +144,7 @@ func (s Stack) WriteWithMaxSize(buffer *strings.Builder, sizeLimit int) bool {
 		if estimatedLineLen+buffer.Len() > sizeLimit {
 			return true
 		}
-		fmt.Fprintf(buffer, "\n  %s:%d in %s", frame.Filename, frame.Line, frame.Method)
+		fmt.Fprintf(buffer, "\n  %s:%d in %s (%x)", frame.Filename, frame.Line, frame.Method, frame.PC /*TODO: removeme*/)
 	}
 
 	return false
