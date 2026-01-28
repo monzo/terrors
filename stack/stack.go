@@ -121,6 +121,8 @@ func equalByFunctionName(otherFrame *Frame, thisFrame *Frame) bool {
 	}
 
 	if thisFrame.PC == otherFrame.PC {
+		// The other properties are all derived from the program counter, so we know that
+		// if the program counters are the same we can skip the remaining checks.
 		return true
 	} else if thisFrame.Filename == otherFrame.Filename && thisFrame.Method == otherFrame.Method {
 		return true
