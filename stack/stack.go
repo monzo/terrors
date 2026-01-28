@@ -74,15 +74,19 @@ func (s Stack) Fingerprint() string {
 }
 
 func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
-	startIdx := len(s) - len(otherRoot)
+	startIdx := len(otherRoot) - len(s)
 	if startIdx < 0 {
 		return false
 	}
 
-	root := s[startIdx:]
+	other := otherRoot[startIdx:]
 
-	if len(root) == 0 {
+	if len(other) == 0 {
 		return true
+	}
+
+	if len(other) != len(s) {
+		panic("length mismatch")
 	}
 
 	// Special case the frame where we call terrors.Augment, because for cases like the following:
@@ -97,8 +101,8 @@ func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
 	// consider them as the "same" stack frame. So we fall back to comparing the file
 	// and method names too.
 	{
-		thisFrame := root[0]
-		otherFrame := otherRoot[0]
+		thisFrame := s[0]
+		otherFrame := other[0]
 		// We also assume that a program counter of zero means it is remote, since a) we
 		// don't currently transfer that value over the wire (see the protobuf
 		// representations for details), and b) there are no instructions mapped at
@@ -112,11 +116,11 @@ func (s Stack) HasCommonAncestry(otherRoot Stack) bool {
 			return false
 		}
 	}
-	root = root[1:]
-	otherRoot = otherRoot[1:]
+	thisRemaining := s[1:]
+	otherRemaining := other[1:]
 
-	for i, thisFrame := range root {
-		otherFrame := otherRoot[i]
+	for i, thisFrame := range thisRemaining {
+		otherFrame := otherRemaining[i]
 
 		if otherFrame.PC == 0 {
 			return false
