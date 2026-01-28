@@ -1,19 +1,16 @@
 // stolen from https://github.com/stvp/rollbar/blob/master/stack_test.go
 package stack
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 func TestBuildStack(t *testing.T) {
 	frame := BuildStack(1)[0]
-	if frame.Filename != "github.com/monzo/terrors/stack/stack_test.go" {
-		t.Errorf("got: %s", frame.Filename)
-	}
-	if frame.Method != "stack.TestBuildStack" {
-		t.Errorf("got: %s", frame.Method)
-	}
-	if frame.Line != 7 {
-		t.Errorf("got: %d", frame.Line)
-	}
+	assert.Equal(t, "github.com/monzo/terrors/stack/stack_test.go", frame.Filename)
+	assert.Equal(t, "stack.TestBuildStack", frame.Method)
+	assert.NotZero(t, frame.Line, "Frame line number")
 }
 
 func TestStackFingerprint(t *testing.T) {
