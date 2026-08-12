@@ -2,8 +2,10 @@
 package stack
 
 import (
-	"github.com/stretchr/testify/assert"
+	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildStack(t *testing.T) {
@@ -11,6 +13,58 @@ func TestBuildStack(t *testing.T) {
 	assert.Equal(t, "github.com/monzo/terrors/stack/stack_test.go", frame.Filename)
 	assert.Equal(t, "stack.TestBuildStack", frame.Method)
 	assert.NotZero(t, frame.Line, "Frame line number")
+}
+
+// symboliseBulk resolves a slice of PCs the "classic" way — one CallersFrames
+// pass over the whole slice — so we can prove our per-PC cached symbolisation
+// produces byte-for-byte identical frames, including where the compiler has
+// inlined calls (which makes a single PC expand into several frames).
+func symboliseBulk(pcs []uintptr) []Frame {
+	cf := runtime.CallersFrames(pcs)
+	var s []Frame
+	for {
+		frame, more := cf.Next()
+		s = append(s, Frame{
+			Filename: shortenFilePath(frame.File),
+			Method:   functionName(frame.Function),
+			Line:     frame.Line,
+			PC:       frame.PC,
+		})
+		if !more {
+			break
+		}
+	}
+	return s
+}
+
+func TestFramesForPCMatchesBulkSymbolisation(t *testing.T) {
+	// Capture a real, reasonably deep stack including this test's callers.
+	pcs := make([]uintptr, 100)
+	n := runtime.Callers(0, pcs)
+	pcs = pcs[:n]
+
+	bulk := symboliseBulk(pcs)
+
+	var perPC []Frame
+	for _, pc := range pcs {
+		perPC = append(perPC, framesForPC(pc)...)
+	}
+
+	assert.Equal(t, len(bulk), len(perPC), "per-PC symbolisation produced a different number of frames")
+	for i := range bulk {
+		assert.Equal(t, bulk[i].Filename, perPC[i].Filename, "frame %d filename", i)
+		assert.Equal(t, bulk[i].Method, perPC[i].Method, "frame %d method", i)
+		assert.Equal(t, bulk[i].Line, perPC[i].Line, "frame %d line", i)
+		assert.Equal(t, bulk[i].PC, perPC[i].PC, "frame %d pc", i)
+	}
+}
+
+func TestFramesForPCIsCached(t *testing.T) {
+	pc := BuildStack(0)[0].PC
+	first := framesForPC(pc)
+	second := framesForPC(pc)
+	// A cache hit must return the very same backing slice, not re-symbolise.
+	assert.Equal(t, &first[0], &second[0], "expected cached frames to be reused")
 }
 
 func TestStackFingerprint(t *testing.T) {
@@ -176,4 +230,26 @@ func assertHasCommonAncestry(t *testing.T, current Stack, other Stack) bool {
 }
 func assertHasNoCommonAncestry(t *testing.T, current Stack, other Stack) bool {
 	return assert.False(t, current.HasCommonAncestry(other), "Stack current should not have common ancestry with other: current:%v\nother:%v\n", current, other)
+}
+
+// buildStackAtDepth recurses to a given depth before building a stack, so the
+// benchmark exercises a stack of a realistic size rather than the shallow one
+// the test harness itself provides.
+func buildStackAtDepth(depth int) Stack {
+	if depth > 0 {
+		return buildStackAtDepth(depth - 1)
+	}
+	return BuildStack(0)
+}
+
+// BenchmarkBuildStack measures the steady state: repeated calls from call sites
+// that have already been symbolised, which is what a busy service overwhelmingly
+// sees once its hot error paths have run at least once.
+func BenchmarkBuildStack(b *testing.B) {
+	var s Stack
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		s = buildStackAtDepth(20)
+	}
+	_ = s
 }
