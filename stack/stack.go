@@ -4,9 +4,9 @@ package stack
 import (
 	"fmt"
 	"hash/crc32"
-	"os"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 var (
@@ -16,6 +16,29 @@ var (
 		"bitbucket.org/",
 		"launchpad.net/",
 	}
+
+	// pcBufPool reuses the []uintptr scratch buffers that runtime.Callers writes
+	// into. BuildStack runs on every error, so recycling these avoids an 800-byte
+	// allocation per call.
+	pcBufPool = sync.Pool{
+		New: func() interface{} {
+			b := make([]uintptr, 100)
+			return &b
+		},
+	}
+
+	// symCache memoises the symbolisation of a program counter. A PC always maps
+	// to the same frame(s) for the life of the process (code doesn't move), so
+	// resolving file/line/function names — the expensive part of building a stack
+	// — only has to happen once per distinct call site. The cache is bounded by
+	// the number of call sites in the binary, so it cannot grow without bound.
+	//
+	// We deliberately cache frames by value, not by pointer: BuildStack copies
+	// them into a fresh backing array on every call, so a caller that mutates a
+	// returned Frame only affects their own Stack and can never corrupt the
+	// shared cache (Frame is all strings and ints, so a struct copy is fully
+	// independent).
+	symCache sync.Map // map[uintptr][]Frame
 )
 
 type Frame struct {
@@ -28,10 +51,12 @@ type Frame struct {
 type Stack []*Frame
 
 func BuildStack(skip int) Stack {
-	stack := make(Stack, 0)
-
-	// Look up to a maximum depth of 100
-	ret := make([]uintptr, 100)
+	// Look up to a maximum depth of 100, reusing a pooled buffer. The buffer is
+	// only referenced by runtime.CallersFrames below, so it's safe to return it
+	// to the pool once we've finished iterating within this function.
+	bufp := pcBufPool.Get().(*[]uintptr)
+	ret := *bufp
+	defer pcBufPool.Put(bufp)
 
 	// Note that indexes must be one higher when passed to Callers()
 	// than they would be when passed to Caller()
@@ -39,26 +64,63 @@ func BuildStack(skip int) Stack {
 	index := runtime.Callers(skip+1, ret)
 	if index == 0 {
 		// We have no frames to report, skip must be too high
-		return stack
+		return Stack{}
 	}
 
-	// This function takes a list of counters and gets function/file/line information
-	cf := runtime.CallersFrames(ret[:index])
+	// Symbolise each PC, reusing cached results for call sites we've already
+	// resolved. We copy the cached frame values into a backing array that this
+	// call exclusively owns, so callers can freely mutate the returned frames
+	// without affecting the cache or any other Stack. A PC can expand to more
+	// than one frame when calls are inlined, so index is a lower bound.
+	frames := make([]Frame, 0, index)
+	for _, pc := range ret[:index] {
+		frames = append(frames, framesForPC(pc)...)
+	}
 
+	// Now the backing array is stable we can hand out pointers into it.
+	stack := make(Stack, len(frames))
+	for i := range frames {
+		stack[i] = &frames[i]
+	}
+	return stack
+}
+
+// framesForPC resolves a single program counter to its frame(s), memoising the
+// result. Symbolisation (decoding the runtime's line tables) is the dominant
+// cost of building a stack, and the mapping is stable for the life of the
+// process, so we only pay it once per distinct PC.
+//
+// The returned slice is the shared, cached copy and must not be mutated;
+// callers append it into a private backing array (see BuildStack).
+func framesForPC(pc uintptr) []Frame {
+	if cached, ok := symCache.Load(pc); ok {
+		return cached.([]Frame)
+	}
+
+	// A single PC can expand into multiple frames due to inlining, so we still
+	// have to iterate CallersFrames. Processing one PC at a time yields the same
+	// frames as processing the whole slice at once (verified in the tests).
+	cf := runtime.CallersFrames([]uintptr{pc})
+	var frames []Frame
 	for {
-		frame, ok := cf.Next()
-		stack = append(stack, &Frame{
+		frame, more := cf.Next()
+		frames = append(frames, Frame{
 			Filename: shortenFilePath(frame.File),
-			Method:   functionName(frame.PC),
-			Line:     frame.Line,
-			PC:       frame.PC,
+			// frame.Function already carries the fully-qualified name, so we use
+			// it directly rather than doing a second runtime.FuncForPC lookup.
+			Method: functionName(frame.Function),
+			Line:   frame.Line,
+			PC:     frame.PC,
 		})
-		if !ok {
-			// This was the last valid caller
+		if !more {
 			break
 		}
 	}
-	return stack
+
+	// LoadOrStore keeps a single canonical slice per PC even if two goroutines
+	// race to symbolise the same one concurrently.
+	actual, _ := symCache.LoadOrStore(pc, frames)
+	return actual.([]Frame)
 }
 
 // Create a fingerprint that uniquely identify a given message. We use the full
@@ -182,12 +244,11 @@ func shortenFilePath(s string) string {
 	return s
 }
 
-func functionName(pc uintptr) string {
-	fn := runtime.FuncForPC(pc)
-	if fn == nil {
+func functionName(name string) string {
+	if name == "" {
 		return "???"
 	}
-	name := fn.Name()
-	end := strings.LastIndex(name, string(os.PathSeparator))
+	// Function names are always '/'-separated regardless of the host OS.
+	end := strings.LastIndex(name, "/")
 	return name[end+1:]
 }
