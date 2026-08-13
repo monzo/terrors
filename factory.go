@@ -127,23 +127,25 @@ func RateLimited(code, message string, params map[string]string) *Error {
 // errorConstructor returns a `*Error` with the specified code, message and params.
 // Builds a stack based on the current call stack
 func errorFactory(code string, message string, params map[string]string) *Error {
+	// Params is guaranteed non-nil for callers. Reuse the caller's map when
+	// provided rather than allocating an empty one and immediately discarding it.
+	if params == nil {
+		params = map[string]string{}
+	}
 	err := &Error{
 		Code:    ErrUnknown,
 		Message: message,
-		Params:  map[string]string{},
+		Params:  params,
 	}
 	if len(code) > 0 {
 		err.Code = code
 
 		err.IsRetryable = &notRetryable
 		for _, c := range retryableCodes {
-			if PrefixMatches(err, c) {
+			if err.PrefixMatches(c) {
 				err.IsRetryable = &retryable
 			}
 		}
-	}
-	if params != nil {
-		err.Params = params
 	}
 
 	// TODO pass in context.Context
