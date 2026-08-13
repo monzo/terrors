@@ -209,7 +209,7 @@ func (p *Error) Retryable() bool {
 		return *p.IsRetryable
 	}
 	for _, c := range retryableCodes {
-		if PrefixMatches(p, c) {
+		if p.PrefixMatches(c) {
 			return true
 		}
 	}
